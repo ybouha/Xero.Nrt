@@ -5,27 +5,28 @@
 
 public class Program
 {
+    private const int CNT = 10000000;
+
     static void Main()
     {
         Console.WriteLine("Generate a large dataset");
         List<ExampleItem> referenceList = GenerateLargeData();
         List<ExampleItem> targetList = GenerateLargeDataWithChanges(referenceList);
 
-        Console.WriteLine("Measure the performance of PropertyComparerFastMember");
-        var comparerFastMember = new ListComparer<ExampleItem>(new List<string> { nameof(ExampleItem.Id), nameof(ExampleItem.Name) }, new List<string>());
+        Console.WriteLine($"Measure the performance of SmartCompare:{CNT} items");
+        var comparerFastMember = new ListComparerV1<ExampleItem>(new List<string> { nameof(ExampleItem.Id), nameof(ExampleItem.Name) }, new List<string>());
         var diffResult = comparerFastMember.CompareObjects(referenceList, targetList);
 
         Console.WriteLine("InBothButDiff Count =>:" + diffResult.Count);
         Console.WriteLine("OnlyInRef Count =>:" + diffResult.OnlyInReference.Count);
         Console.WriteLine("OnlyInTarget Count =>:" + diffResult.OnlyInTarget .Count);
 
-        var excelExporter = new ExcelExporter<ExampleItem>();
-        var filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "ComparisonDifferences.xlsx");
-        excelExporter.ExportDifferences(diffResult, filePath);
+        //var excelExporter = new ExcelExporter<ExampleItem>();
+        //var filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "ComparisonDifferences.xlsx");
+        //excelExporter.ExportDifferences(diffResult, filePath);
 
     }
 
-    private const int  CNT = 10000000;
     static List<ExampleItem> GenerateLargeData()
     {
         const int dataSize = CNT; // Adjust the size as needed

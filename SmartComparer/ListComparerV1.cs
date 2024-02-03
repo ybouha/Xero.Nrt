@@ -4,15 +4,16 @@ using FastMember;
 
 namespace SmartComparer;
 
-public class ListComparer<T> where T:class, new()
+public class ListComparerV1<T> where T:class, new()
 {
     private readonly List<string> keyProperties;
     private readonly List<string> ignoreProperties;
+
     private readonly TypeAccessor accessor;
     private readonly EqualityComparer<T> keyEqComparer;
 
 
-    public ListComparer(List<string> keyProperties, List<string> ignoreProperties)
+    public ListComparerV1(List<string> keyProperties, List<string> ignoreProperties)
     {
         this.keyProperties = keyProperties;
         this.ignoreProperties = ignoreProperties;
@@ -37,6 +38,17 @@ public class ListComparer<T> where T:class, new()
         List<T>? onlyInReference = null;
         List<Dictionary<string, object>>? inBothButDiff = null;
 
+        var refList = referenceItems
+            .AsParallel()
+            .Select(item => (keyEqComparer.GetHashCode(item), item))
+            .ToList();
+
+        var targetList = targetItems
+            .AsParallel()
+            .Select(item => (keyEqComparer.GetHashCode(item), item))
+            .ToList();
+
+
         Parallel.Invoke(
             new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
             () => onlyInTarget = MeasureTime(() => GetOnlyInList(targetItems, referenceItems), "Get OnlyInTarget"),
@@ -58,33 +70,34 @@ public class ListComparer<T> where T:class, new()
         return referenceItems.Join(targetItems,
                 x => x,
                 y => y,
-                (x, y) => new {Reference = x, Target = y}
+                (x, y) => new CoupleItem<T>(x, y)
                 ,keyEqComparer)
             .AsParallel()
-            .Select(couple =>CompareProperties(couple.Reference, couple.Target))
+            .Select(CompareProperties)
             .Where(diffResult => diffResult.Count > 0)
             .ToList();
     }
 
     private List<T>? GetOnlyInList(List<T> baseItems, List<T> otherItems)
     {
-        var otherSet = new HashSet<T>(otherItems, keyEqComparer);
-        return baseItems.Where(item => !otherSet.Contains(item)).ToList();
+        //var otherSet = new HashSet<T>(otherItems, keyEqComparer);
+        //return baseItems.Where(item => !otherSet.Contains(item)).ToList();
+        return baseItems.ExceptEx(otherItems, keyEqComparer).ToList();
     }
 
 
-    private Dictionary<string, object> CompareProperties(T referenceItem, T targetItem)
+    private Dictionary<string, object> CompareProperties(CoupleItem<T> couple)
     {
-        var keyValues = GetKeyValues(referenceItem);
+        var keyValues = GetKeyValues(couple.ReferenceItem);
         var diff = new Dictionary<string, object>();
-        foreach (var property in accessor.GetMembers().Where(m => m.Type != typeof(object) && !ignoreProperties.Contains(m.Name)))
+        foreach (var prop in accessor.GetMembers().Where(m => m.Type != typeof(object) && !ignoreProperties.Contains(m.Name)))
         {
-            var referenceValue = accessor[referenceItem, property.Name];
-            var targetValue = accessor[targetItem, property.Name];
+            var referenceValue = accessor[couple.ReferenceItem, prop.Name];
+            var targetValue = accessor[couple.TargetItem, prop.Name];
             if (Equals(referenceValue, targetValue)) continue;
 
-            diff.Add($"Reference_{property.Name}", referenceValue);
-            diff.Add($"Target_{property.Name}", targetValue);
+            diff.Add($"Reference_{prop.Name}", referenceValue);
+            diff.Add($"Target_{prop.Name}", targetValue);
         }
 
         if (diff.Count <= 0) return diff;
@@ -92,7 +105,7 @@ public class ListComparer<T> where T:class, new()
         {
             diff.Add($"Key_{keyValuePair.Key}", keyValuePair.Value);
         }
-        diff.Add("ComparedItems", JsonSerializer.Serialize(new { ReferenceItem=referenceItem, TargetItem=targetItem }));
+        diff.Add("ComparedCouple", couple);
         return diff;
     }
 
@@ -105,6 +118,8 @@ public class ListComparer<T> where T:class, new()
             var value = accessor[item, keyProperty];
             keyValues.Add(keyProperty, value);
         }
+
         return keyValues;
     }
 }
+
