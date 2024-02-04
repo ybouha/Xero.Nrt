@@ -4,12 +4,14 @@ namespace SmartComparer
 {
     public class CoupleItem<T>
     {
-        public CoupleItem(T referenceItem, T targetItem)
+        public CoupleItem((int, int) idx, T referenceItem, T targetItem)
         {
             ReferenceItem = referenceItem;
-
             TargetItem = targetItem;
+            Idx = idx;
         }
+
+        public (int, int) Idx { get; set; }
 
         public T ReferenceItem { get; set; }
 

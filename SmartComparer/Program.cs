@@ -15,11 +15,21 @@ public class Program
 
         Console.WriteLine($"Measure the performance of SmartCompare:{CNT} items");
         var comparerFastMember = new ListComparerV1<ExampleItem>(new List<string> { nameof(ExampleItem.Id), nameof(ExampleItem.Name) }, new List<string>());
-        var diffResult = comparerFastMember.CompareObjects(referenceList, targetList);
+        var diffResult = comparerFastMember.CompareObjectsAsync(referenceList, targetList).Result;
 
         Console.WriteLine("InBothButDiff Count =>:" + diffResult.Count);
         Console.WriteLine("OnlyInRef Count =>:" + diffResult.OnlyInReference.Count);
         Console.WriteLine("OnlyInTarget Count =>:" + diffResult.OnlyInTarget .Count);
+
+
+        //Console.WriteLine($"Measure the performance of SmartCompare:{CNT} items");
+        //var comparerFastMember2 = new ListComparer<ExampleItem>(new List<string> { nameof(ExampleItem.Id), nameof(ExampleItem.Name) }, new List<string>());
+        //var diffResult2 = comparerFastMember2.CompareObjects(referenceList, targetList);
+
+        //Console.WriteLine("InBothButDiff Count =>:" + diffResult2.Count);
+        //Console.WriteLine("OnlyInRef Count =>:" + diffResult2.OnlyInReference.Count);
+        //Console.WriteLine("OnlyInTarget Count =>:" + diffResult2.OnlyInTarget.Count);
+
 
         //var excelExporter = new ExcelExporter<ExampleItem>();
         //var filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "ComparisonDifferences.xlsx");

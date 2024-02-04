@@ -1,14 +1,14 @@
-﻿using System.Linq.Expressions;
-using FastMember;
+﻿using FastMember;
+using System.Linq.Expressions;
 
 namespace SmartComparer
 {
-    public class EqualityComparer<T> : IEqualityComparer<T>
+    public class EqualityComparerEx<T> : IEqualityComparer<T>
     {
         private readonly List<string> _keyPops;
         private readonly TypeAccessor _typeAccessor;
 
-        public EqualityComparer(List<string> keyPops)
+        public EqualityComparerEx(List<string> keyPops)
         {
             _keyPops = keyPops;
             _typeAccessor = TypeAccessor.Create(typeof(T));
@@ -26,55 +26,15 @@ namespace SmartComparer
 
         public int GetHashCode(T obj)
         {
-            unchecked
+            var hashCode = new HashCode();
+            _keyPops.ForEach(p =>
             {
-                return _keyPops.Select(column => _typeAccessor[obj, column]).Aggregate(17, (hashCode, value) => hashCode * 23 + (value?.GetHashCode() ?? 0));
-            }
+                hashCode.Add(_typeAccessor[obj, p]);
+            });
+            return hashCode.ToHashCode();
         }
+
+
     }
 
-
-
-    public class EqualityComparerV1<T> : IEqualityComparer<T>
-    {
-        private readonly Func<T, object[]> keySelectors;
-
-        public EqualityComparerV1(List<string> keyProperties)
-        {
-            keySelectors = BuildKeySelectors(keyProperties);
-        }
-
-        private Func<T, object[]> BuildKeySelectors(List<string> keyProperties)
-        {
-            var type = typeof(T);
-            var parameter = Expression.Parameter(type, "x");
-
-            var keySelectors = keyProperties.Select(propertyName =>
-            {
-                var property = type.GetProperty(propertyName);
-                var propertyAccess = Expression.Property(parameter, property);
-                var propertyConversion = Expression.Convert(propertyAccess, typeof(object));
-
-                return propertyConversion;
-            }).ToArray();
-
-            var arrayCreation = Expression.NewArrayInit(typeof(object), keySelectors);
-
-            return Expression.Lambda<Func<T, object[]>>(arrayCreation, parameter).Compile();
-        }
-
-        public bool Equals(T x, T y)
-        {
-            var xKeys = keySelectors(x);
-            var yKeys = keySelectors(y);
-
-            return xKeys.SequenceEqual(yKeys);
-        }
-
-        public int GetHashCode(T obj)
-        {
-            var keys = keySelectors(obj);
-            return keys.Aggregate(0, (currentHash, key) => HashCode.Combine(currentHash, key));
-        }
-    }
 }
