@@ -6,14 +6,13 @@ namespace SmartComparer
 {
     public class ExcelExporter<T>
     {
+        private const int MaxRowsPerSheet = 1000000; // Excel row count limit
+
         public void ExportDifferences(CompareResult<T> dataSource, string filePath)
         {
             using (var package = new ExcelPackage())
             {
-                AddWorksheet(package, "InBothButDifferent", dataSource);
-                AddListWorksheet(package, "OnlyInReference", dataSource.OnlyInReference);
-                AddListWorksheet(package, "OnlyInTarget", dataSource.OnlyInTarget);
-
+                AddWorksheets(package, dataSource);
                 package.SaveAs(new FileInfo(filePath));
             }
 
@@ -22,39 +21,68 @@ namespace SmartComparer
             OpenExcelFile(filePath);
         }
 
-        private void AddWorksheet(ExcelPackage package, string worksheetName, CompareResult<T> dataSource)
+        private void AddWorksheets(ExcelPackage package, CompareResult<T> dataSource)
         {
-            var worksheet = package.Workbook.Worksheets.Add(worksheetName);
+            var inBothButDifferent = dataSource;
+            var onlyInReference = dataSource.OnlyInReference;
+            var onlyInTarget = dataSource.OnlyInTarget;
 
-            if (dataSource.Count > 0)
+            int index = 1;
+
+            index = AddWorksheet(package, "InBothButDifferent", inBothButDifferent, index);
+            index = AddListWorksheets(package, "OnlyInReference", onlyInReference, index);
+            index = AddListWorksheets(package, "OnlyInTarget", onlyInTarget, index);
+        }
+
+        private int AddWorksheet(ExcelPackage package, string worksheetName, List<Dictionary<string, object>> dataList, int index)
+        {
+            int remainingRows = dataList.Count;
+            int sheetIndex = 1;
+
+            while (remainingRows > 0)
             {
+                var worksheet = package.Workbook.Worksheets.Add($"{worksheetName}_{sheetIndex}");
+
                 // Add headers
-                var headers = dataSource.FirstRow.Keys.ToList();
+                var headers = dataList.First().Keys.ToList();
                 for (int i = 0; i < headers.Count; i++)
                 {
                     worksheet.Cells[1, i + 1].Value = headers[i];
                 }
 
                 // Add data
-                for (int row = 0; row < dataSource.Count; row++)
+                int row = 0;
+                int rowsAdded = 0;
+                for (; row < remainingRows && rowsAdded < MaxRowsPerSheet; row++, rowsAdded++)
                 {
-                    var rowData = dataSource[row];
+                    var rowData = dataList[row];
                     for (int col = 0; col < headers.Count; col++)
                     {
                         worksheet.Cells[row + 2, col + 1].Value = rowData[headers[col]];
                     }
                 }
+
+                remainingRows -= rowsAdded;
+                index++;
+
+                sheetIndex++;
             }
+
+            return index;
         }
 
-        private void AddListWorksheet(ExcelPackage package, string worksheetName, List<T>? dataList)
+        private int AddListWorksheets(ExcelPackage package, string worksheetName, List<T>? dataList, int index)
         {
-            var worksheet = package.Workbook.Worksheets.Add(worksheetName);
+            if (dataList == null || dataList.Count == 0)
+                return index;
 
-            if (dataList.Count > 0)
+            var accessor = TypeAccessor.Create(typeof(T));
+            int remainingRows = dataList.Count;
+            int sheetIndex = 1;
+
+            while (remainingRows > 0)
             {
-                // Use FastMember to access properties
-                var accessor = TypeAccessor.Create(typeof(T));
+                var worksheet = package.Workbook.Worksheets.Add($"{worksheetName}_{sheetIndex}");
 
                 // Add headers
                 var headers = accessor.GetMembers().Select(m => m.Name).ToList();
@@ -64,7 +92,9 @@ namespace SmartComparer
                 }
 
                 // Add data
-                for (int row = 0; row < dataList.Count; row++)
+                int row = 0;
+                int rowsAdded = 0;
+                for (; row < remainingRows && rowsAdded < MaxRowsPerSheet; row++, rowsAdded++)
                 {
                     var rowData = dataList[row];
                     for (int col = 0; col < headers.Count; col++)
@@ -72,7 +102,14 @@ namespace SmartComparer
                         worksheet.Cells[row + 2, col + 1].Value = accessor[dataList[row], headers[col]];
                     }
                 }
+
+                remainingRows -= rowsAdded;
+                index++;
+
+                sheetIndex++;
             }
+
+            return index;
         }
 
 
@@ -90,8 +127,4 @@ namespace SmartComparer
             }
         }
     }
-
-
-
-
 }

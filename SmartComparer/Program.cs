@@ -1,4 +1,7 @@
-﻿using SmartComparer;
+﻿using System.Text.Json;
+using Collections.Pooled;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Text;
+using SmartComparer;
 
 // Example usage:
 
@@ -9,33 +12,25 @@ public class Program
 
     static void Main()
     {
+
         Console.WriteLine("Generate a large dataset");
         List<ExampleItem> referenceList = GenerateLargeData();
         List<ExampleItem> targetList = GenerateLargeDataWithChanges(referenceList);
 
         Console.WriteLine($"Measure the performance of SmartCompare:{CNT} items");
-        var comparerFastMember = new ListComparerV1<ExampleItem>(new List<string> { nameof(ExampleItem.Id), nameof(ExampleItem.Name) }, new List<string>());
-        var diffResult = comparerFastMember.CompareObjectsAsync(referenceList, targetList).Result;
+        var comparerFastMember = new ListComparer<ExampleItem>(new List<string> { nameof(ExampleItem.Id), nameof(ExampleItem.Name) }, new List<string>());
+        var diffResult = comparerFastMember.CompareList(referenceList, targetList).Result;
 
         Console.WriteLine("InBothButDiff Count =>:" + diffResult.Count);
         Console.WriteLine("OnlyInRef Count =>:" + diffResult.OnlyInReference.Count);
-        Console.WriteLine("OnlyInTarget Count =>:" + diffResult.OnlyInTarget .Count);
+        Console.WriteLine("OnlyInTarget Count =>:" + diffResult.OnlyInTarget.Count);
 
-
-        //Console.WriteLine($"Measure the performance of SmartCompare:{CNT} items");
-        //var comparerFastMember2 = new ListComparer<ExampleItem>(new List<string> { nameof(ExampleItem.Id), nameof(ExampleItem.Name) }, new List<string>());
-        //var diffResult2 = comparerFastMember2.CompareObjects(referenceList, targetList);
-
-        //Console.WriteLine("InBothButDiff Count =>:" + diffResult2.Count);
-        //Console.WriteLine("OnlyInRef Count =>:" + diffResult2.OnlyInReference.Count);
-        //Console.WriteLine("OnlyInTarget Count =>:" + diffResult2.OnlyInTarget.Count);
-
-
-        //var excelExporter = new ExcelExporter<ExampleItem>();
-        //var filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "ComparisonDifferences.xlsx");
-        //excelExporter.ExportDifferences(diffResult, filePath);
+        var excelExporter = new ExcelExporter<ExampleItem>();
+        var filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "ComparisonDifferences.xlsx");
+        excelExporter.ExportDifferences(diffResult, filePath);
 
     }
+
 
     static List<ExampleItem> GenerateLargeData()
     {
@@ -48,11 +43,11 @@ public class Program
 
     static List<ExampleItem> GenerateLargeDataWithChanges(List<ExampleItem> originalData)
     {
-        const int changesCount = CNT/ 20;
+        const int changesCount = CNT/ 2;
 
         var inbothbutDiff  = originalData.OrderBy(g=>g.Id).Select((item, idx) =>
             new ExampleItem { Id = item.Id, Name = item.Name, Price = idx < changesCount? item.Price*2: item.Price }
-        ).ToList().Take(originalData.Count - 1000).ToList();
+        ).ToList().Take(originalData.Count - 10).ToList();
 
 
         var onlyInRef = originalData.Take(2000).Select((item, idx) =>
