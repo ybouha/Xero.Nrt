@@ -39,11 +39,47 @@ public class HtmlExporter<T>
         sb.AppendLine("  outline: none;");
         sb.AppendLine("  font-size: 15px;");
         sb.AppendLine("}");
+        sb.AppendLine(".collapsible:after {");
+        sb.AppendLine("  content: '\u25B8';");
+        sb.AppendLine("  color: white;");
+        sb.AppendLine("  float: right;");
+        sb.AppendLine("  font-weight: bold;");
+        sb.AppendLine("}");
+        sb.AppendLine(".active:after {");
+        sb.AppendLine("  content: '\u25BE';");
+        sb.AppendLine("}");
         sb.AppendLine(".content {");
         sb.AppendLine("  padding: 0 18px;");
         sb.AppendLine("  display: none;");
         sb.AppendLine("  overflow: hidden;");
         sb.AppendLine("  background-color: #f1f1f1;");
+        sb.AppendLine("}");
+        sb.AppendLine(".tnrReport {");
+        sb.AppendLine("  border-collapse: collapse;");
+        sb.AppendLine("  width: 100%;");
+        sb.AppendLine("}");
+        sb.AppendLine(".tnrReport tr th {");
+        sb.AppendLine("  background-color: #3c454f;");
+        sb.AppendLine("  color: #ffffff;");
+        sb.AppendLine("  padding: 10px 5px 10px 5px;");
+        sb.AppendLine("  border: 1px solid #cccccc;");
+        sb.AppendLine("  font-family: Arial, Helvetica, sans-serif;");
+        sb.AppendLine("  font-size: 12px;");
+        sb.AppendLine("  font-weight: normal;");
+        sb.AppendLine("  text-transform: capitalize;");
+        sb.AppendLine("}");
+        sb.AppendLine(".tnrReport tr td {");
+        sb.AppendLine("  padding: 5px 10px 5px 10px;");
+        sb.AppendLine("  color: black;");
+        sb.AppendLine("  font-family: Arial, Helvetica, sans-serif;");
+        sb.AppendLine("  font-size: 11px;");
+        sb.AppendLine("  border: 1px solid #cccccc;");
+        sb.AppendLine("  vertical-align: middle;");
+        sb.AppendLine("  white-space: nowrap;");
+        sb.AppendLine("}");
+        sb.AppendLine(".tnrReport tr td:first-child {");
+        sb.AppendLine("  text-align: left;");
+        sb.AppendLine("  font-weight: bold;");
         sb.AppendLine("}");
         sb.AppendLine("</style>");
         sb.AppendLine("</head>");
@@ -84,7 +120,7 @@ public class HtmlExporter<T>
         sb.AppendLine("<div class='content'>");
 
         // Add headers
-        sb.AppendLine("<table border='1'>");
+        sb.AppendLine("<table class='tnrReport'>");
         sb.AppendLine("<tr>");
         foreach (var header in dataList.First().Keys)
         {
@@ -120,7 +156,7 @@ public class HtmlExporter<T>
         sb.AppendLine("<div class='content'>");
 
         // Add headers
-        sb.AppendLine("<table border='1'>");
+        sb.AppendLine("<table class='tnrReport'>");
         sb.AppendLine("<tr>");
         foreach (var member in accessor.GetMembers())
         {
