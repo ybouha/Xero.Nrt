@@ -11,13 +11,17 @@ namespace SmartComparer;
 
 public class HtmlExporter<T>
 {
+
+    MemberSet _typeMembers = TypeAccessor.Create(typeof(T)).GetMembers();
+    TypeAccessor accessor = TypeAccessor.Create(typeof(T));
+
     private const int MaxRowsPerTable = 100; // Maximum rows per HTML table
 
     public void ExportDifferences(CompareResult<T> dataSource, string filePath)
     {
         var htmlContent = GenerateHtml(dataSource);
         File.WriteAllText(filePath, htmlContent);
-        
+
         Console.WriteLine($"HTML file exported to: {filePath}");
 
         // Open the HTML file in the default browser
@@ -27,92 +31,90 @@ public class HtmlExporter<T>
     private string GenerateHtml(CompareResult<T> dataSource)
     {
         var sb = new StringBuilder();
-        
-        sb.AppendLine("<!DOCTYPE html>");
-        sb.AppendLine("<html>");
-        sb.AppendLine("<head>");
-        sb.AppendLine("<title>Data Differences</title>");
-        sb.AppendLine("<style>");
-        sb.AppendLine(".collapsible {");
-        sb.AppendLine("  background-color: #777;");
-        sb.AppendLine("  color: white;");
-        sb.AppendLine("  cursor: pointer;");
-        sb.AppendLine("  padding: 18px;");
-        sb.AppendLine("  width: 100%;");
-        sb.AppendLine("  border: none;");
-        sb.AppendLine("  text-align: left;");
-        sb.AppendLine("  outline: none;");
-        sb.AppendLine("  font-size: 15px;");
-        sb.AppendLine("}");
-        sb.AppendLine(".collapsible:after {");
-        sb.AppendLine("  content: '\u25B8';");
-        sb.AppendLine("  color: white;");
-        sb.AppendLine("  float: right;");
-        sb.AppendLine("  font-weight: bold;");
-        sb.AppendLine("}");
-        sb.AppendLine(".active:after {");
-        sb.AppendLine("  content: '\u25BE';");
-        sb.AppendLine("}");
-        sb.AppendLine(".content {");
-        sb.AppendLine("  padding: 0 18px;");
-        sb.AppendLine("  display: none;");
-        sb.AppendLine("  overflow: hidden;");
-        sb.AppendLine("  background-color: #f1f1f1;");
-        sb.AppendLine("}");
-        sb.AppendLine(".tnrReport {");
-        sb.AppendLine("  border-collapse: collapse;");
-        sb.AppendLine("  width: 100%;");
-        sb.AppendLine("}");
-        sb.AppendLine(".tnrReport tr th {");
-        sb.AppendLine("  background-color: #3c454f;");
-        sb.AppendLine("  color: #ffffff;");
-        sb.AppendLine("  padding: 10px 5px 10px 5px;");
-        sb.AppendLine("  border: 1px solid #cccccc;");
-        sb.AppendLine("  font-family: Arial, Helvetica, sans-serif;");
-        sb.AppendLine("  font-size: 12px;");
-        sb.AppendLine("  font-weight: normal;");
-        sb.AppendLine("  text-transform: capitalize;");
-        sb.AppendLine("}");
-        sb.AppendLine(".tnrReport tr td {");
-        sb.AppendLine("  padding: 5px 10px 5px 10px;");
-        sb.AppendLine("  color: black;");
-        sb.AppendLine("  font-family: Arial, Helvetica, sans-serif;");
-        sb.AppendLine("  font-size: 11px;");
-        sb.AppendLine("  border: 1px solid #cccccc;");
-        sb.AppendLine("  vertical-align: middle;");
-        sb.AppendLine("  white-space: nowrap;");
-        sb.AppendLine("}");
-        sb.AppendLine(".tnrReport tr td:first-child {");
-        sb.AppendLine("  text-align: left;");
-        sb.AppendLine("  font-weight: bold;");
-        sb.AppendLine("}");
-        sb.AppendLine("</style>");
-        sb.AppendLine("</head>");
-        sb.AppendLine("<body>");
+
+        // Append HTML content
+        sb.Append(@"<!DOCTYPE html><html>
+            <head><title>Data Differences</title>");
+
+        // Append CSS content
+        sb.Append(@"<style>.collapsible {
+    background-color: #777;
+    color: white;
+    cursor: pointer;
+    padding: 10px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+}
+.collapsible:after {
+    content: '\25B8'; /* Unicode for small triangle pointing right */
+    color: white;
+    float: right;
+    font-weight: bold;
+}
+.active:after {
+    content: '\25BE'; /* Unicode for small triangle pointing down */
+}
+.content {
+    display: none;
+    overflow: hidden;
+    background-color: #f1f1f1;
+}
+.tnrReport {
+    border-collapse: collapse;
+    width: 100%;
+}
+.tnrReport tr th {
+    background-color: #3c454f;
+    color: #ffffff;
+    padding: 3px 3px 3px 3px;
+    border: 1px solid #cccccc;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-weight: normal;
+    text-transform: capitalize;
+}
+.tnrReport tr td {
+    padding: 2px 2px 2px 2px;
+    color: black;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    border: 1px solid #cccccc;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.tnrReport tr td:first-child {
+    text-align: left;
+    font-weight: bold;
+}
+</style>");
+
+
+        sb.Append("</head><body>");
 
         AddCollapsiblePanels(sb, "InBothButDifferent", dataSource);
         AddCollapsibleListPanels(sb, "OnlyInReference", dataSource.OnlyInReference);
         AddCollapsibleListPanels(sb, "OnlyInTarget", dataSource.OnlyInTarget);
 
-        sb.AppendLine("<script>");
-        sb.AppendLine("var coll = document.getElementsByClassName('collapsible');");
-        sb.AppendLine("var i;");
-        sb.AppendLine("for (i = 0; i < coll.length; i++) {");
-        sb.AppendLine("  coll[i].addEventListener('click', function() {");
-        sb.AppendLine("    this.classList.toggle('active');");
-        sb.AppendLine("    var content = this.nextElementSibling;");
-        sb.AppendLine("    if (content.style.display === 'block') {");
-        sb.AppendLine("      content.style.display = 'none';");
-        sb.AppendLine("    } else {");
-        sb.AppendLine("      content.style.display = 'block';");
-        sb.AppendLine("    }");
-        sb.AppendLine("  });");
-        sb.AppendLine("}");
-        sb.AppendLine("</script>");
+        sb.Append(@"<script>
+            var coll = document.getElementsByClassName('collapsible');
+            var i;
+            for (i = 0; i < coll.length; i++) {
+                coll[i].addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    var content = this.nextElementSibling;
+                    if (content.style.display === 'block') {
+                        content.style.display = 'none';
+                    } else {
+                        content.style.display = 'block';
+                    }
+                });
+            }
+        </script>");
 
-        sb.AppendLine("</body>");
-        sb.AppendLine("</html>");
-
+        sb.AppendLine("</body></html>");
         return sb.ToString();
     }
 
@@ -149,7 +151,7 @@ public class HtmlExporter<T>
             sb.AppendLine($"<th colspan='2'>{property}</th>");
 
         // ComparedItems property
-        sb.AppendLine($"<th rowspan='2'>{comparedItemsProp}</th>");
+        sb.AppendLine($"<th colspan='{_typeMembers.Count + 1}'>{comparedItemsProp}</th>");
 
         sb.AppendLine("</tr>");
 
@@ -165,6 +167,12 @@ public class HtmlExporter<T>
         {
             sb.AppendLine("<th>Reference</th><th>Target</th>");
         }
+
+        sb.AppendLine("<th>Type</th>");
+        foreach (var property in _typeMembers)
+        {
+            sb.AppendLine($"<th>{property.Name}</th>");
+        }
         sb.AppendLine("</tr>");
 
         // Add data (only first 100 rows)
@@ -176,17 +184,43 @@ public class HtmlExporter<T>
             // Key properties
             foreach (var keyProp in keyProperties)
             {
-                sb.AppendLine($"<td>{row[$"Key_{keyProp}"]}</td>");
+                sb.AppendLine($"<td rowspan=\"2\">{row[$"Key_{keyProp}"]}</td>");
             }
 
             // Different properties
             foreach (var diffProp in diffProperties)
             {
-                sb.AppendLine($"<td>{row[$"Reference_{diffProp}"]}</td>");
-                sb.AppendLine($"<td>{row[$"Target_{diffProp}"]}</td>");
+                sb.AppendLine($"<td rowspan=\"2\">{row[$"Reference_{diffProp}"]}</td>");
+                sb.AppendLine($"<td rowspan=\"2\">{row[$"Target_{diffProp}"]}</td>");
             }
 
-            sb.AppendLine("</td>");
+
+            // Parse and render ComparedItems
+            var comparedItems = JsonSerializer.Deserialize<CoupleItem<T>>(row[comparedItemsProp].ToString());
+            if (comparedItems != null)
+            {
+                // Reference Item
+                sb.AppendLine($"<td>Reference</td>");
+                foreach (var property in _typeMembers)
+                {
+                    var value = accessor[comparedItems.ReferenceItem, property.Name];
+                    sb.AppendLine($"<td>{value}</td>");
+                }
+                sb.AppendLine("</tr>");
+                // Target Item
+                sb.AppendLine("<tr>");
+                sb.AppendLine($"<td>Target</td>");
+                foreach (var property in _typeMembers)
+                {
+                    var value = accessor[comparedItems.TargetItem, property.Name];
+                    sb.AppendLine($"<td>{value}</td>");
+                }
+            }
+            else
+            {
+                sb.AppendLine("<tr></tr>");
+            }
+
 
             sb.AppendLine("</tr>");
             rowsAdded++;
@@ -195,6 +229,7 @@ public class HtmlExporter<T>
         sb.AppendLine("</table>");
         sb.AppendLine("</div>");
     }
+
 
 
     private void AddCollapsibleListPanels(StringBuilder sb, string panelName, List<T>? dataList)

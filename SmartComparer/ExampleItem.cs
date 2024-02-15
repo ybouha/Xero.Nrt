@@ -5,6 +5,9 @@ public class ExampleItem
     public int Id { get; set; }
     public string Name { get; set; }
     public decimal Price { get; set; }
+    public decimal Price1 { get; set; }
+    public decimal Price2 { get; set; }
+    public decimal Price3 { get;  set; }
 }
 
 public class Customer

@@ -19,6 +19,7 @@ public class ListComparer<T> where T : class, new()
 
         _propNamesToCompare = accessor.GetMembers().Where(m => m.Type != typeof(object)
             && !ignoreProperties.Contains(m.Name)
+            && !keyProperties.Contains(m.Name)
             ).Select(x => x.Name).ToList();
 
 
@@ -85,28 +86,26 @@ public class ListComparer<T> where T : class, new()
     {
         return inBothEnumerator.AsParallel()
             .Select(couple => CompareProperties(couple.Item1, couple.Item2))
-            .Where(diff => diff != null)
+            .Where(diff => diff.Count > 0)
             .ToList();
     }
 
     private Dictionary<string, object> CompareProperties(T referenceItem, T targetItem)
     {
         var keyValues = GetKeyValues(referenceItem);
-        Dictionary<string, object> diff = null;
+        Dictionary<string, object> diff = new Dictionary<string, object>();
         foreach (var property in _propNamesToCompare)
         {
             var referenceValue = accessor[referenceItem, property];
             var targetValue = accessor[targetItem, property];
             if (Equals(referenceValue, targetValue)) continue;
 
-            diff = new Dictionary<string, object>
-            {
-                {$"Reference_{property}", referenceValue},
-                {$"Target_{property}", targetValue}
-            };
+            diff.Add($"Reference_{property}", referenceValue);
+            diff.Add($"Target_{property}", targetValue);
+           
         }
 
-        if (diff == null ) return diff;
+        if (diff.Count == 0 ) return diff;
         foreach (var keyValuePair in keyValues)
         {
             diff.Add($"Key_{keyValuePair.Key}", keyValuePair.Value);

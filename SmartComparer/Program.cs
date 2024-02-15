@@ -37,7 +37,7 @@ public class Program
         const int dataSize = CNT; // Adjust the size as needed
         var random = new Random();
         return Enumerable.Range(1, dataSize)
-            .Select(i => new ExampleItem { Id = i, Name = $"Item{i}", Price = i + 100 })
+            .Select(i => new ExampleItem { Id = i, Name = $"Item{i}", Price = i + 100, Price1 = i + 90, Price2 = i + 80, Price3 = i + 70 })
             .ToList();
     }
 
@@ -46,17 +46,27 @@ public class Program
         const int changesCount = CNT/ 2;
 
         var inbothbutDiff  = originalData.OrderBy(g=>g.Id).Select((item, idx) =>
-            new ExampleItem { Id = item.Id, Name = item.Name, Price = idx < changesCount? item.Price*2: item.Price }
+            new ExampleItem { Id = item.Id, Name = item.Name, Price = idx < changesCount? item.Price*2: item.Price, Price1 = idx < changesCount ? item.Price1 * 2 : item.Price1
+
+            ,
+                Price2 = idx < changesCount ? item.Price2 * 2 : item.Price2
+                ,
+                Price3 = idx < changesCount ? item.Price3 * 2 : item.Price3
+
+            }
         ).ToList().Take(originalData.Count - 10).ToList();
 
 
         var onlyInRef = originalData.Take(2000).Select((item, idx) =>
-            new ExampleItem { Id = item.Id + originalData.Count+100, Name = item.Name, Price = item.Price }
+            new ExampleItem { Id = item.Id + originalData.Count+100, Name = item.Name, Price = item.Price, Price2 = item.Price2, Price3 = item.Price3}
         ).ToList();
 
         for (int i = changesCount; i < changesCount + 100; i++)
         {
             inbothbutDiff[i].Price *= 2;
+            inbothbutDiff[i].Price2 *= 2;
+            inbothbutDiff[i].Price3 *= 2;
+            inbothbutDiff[i].Price1 *= 2;
         }
 
         return inbothbutDiff.Concat(onlyInRef).ToList();
