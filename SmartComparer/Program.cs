@@ -25,8 +25,8 @@ public class Program
         Console.WriteLine("OnlyInRef Count =>:" + diffResult.OnlyInReference.Count);
         Console.WriteLine("OnlyInTarget Count =>:" + diffResult.OnlyInTarget.Count);
 
-        var excelExporter = new ExcelExporter<ExampleItem>();
-        var filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "ComparisonDifferences.xlsx");
+        var excelExporter = new HtmlExporter<ExampleItem>();
+        var filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "ComparisonDifferences.html");
         excelExporter.ExportDifferences(diffResult, filePath);
 
     }

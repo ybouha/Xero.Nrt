@@ -1,8 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using FastMember;
+
+namespace SmartComparer;
 
 public class HtmlExporter<T>
 {
@@ -85,7 +90,7 @@ public class HtmlExporter<T>
         sb.AppendLine("</head>");
         sb.AppendLine("<body>");
 
-        AddCollapsiblePanels(sb, "InBothButDifferent", dataSource.InBothButDifferent);
+        AddCollapsiblePanels(sb, "InBothButDifferent", dataSource);
         AddCollapsibleListPanels(sb, "OnlyInReference", dataSource.OnlyInReference);
         AddCollapsibleListPanels(sb, "OnlyInTarget", dataSource.OnlyInTarget);
 
@@ -119,12 +124,46 @@ public class HtmlExporter<T>
         sb.AppendLine($"<button class='collapsible'>{panelName}</button>");
         sb.AppendLine("<div class='content'>");
 
+        var keyProperties = dataList.First().Keys
+                            .Where(x => x.StartsWith("Key_"))
+                            .Select(c => c.Replace("Key_", ""))
+                            .Distinct()
+                            .ToList();
+        var diffProperties = dataList.First().Keys
+                            .Where(x => x.StartsWith("Reference_"))
+                            .Select(c => c.Replace("Reference_", ""))
+                            .Distinct()
+                            .ToList();
+        var comparedItemsProp = "ComparedItems";
+
         // Add headers
         sb.AppendLine("<table class='tnrReport'>");
         sb.AppendLine("<tr>");
-        foreach (var header in dataList.First().Keys)
+
+        // Key properties
+        if (keyProperties.Any())
+            sb.AppendLine($"<th colspan='{keyProperties.Count}'>Key</th>");
+
+        // Different properties
+        foreach (var property in diffProperties)
+            sb.AppendLine($"<th colspan='2'>{property}</th>");
+
+        // ComparedItems property
+        sb.AppendLine($"<th rowspan='2'>{comparedItemsProp}</th>");
+
+        sb.AppendLine("</tr>");
+
+        // Second header row
+        sb.AppendLine("<tr>");
+
+        foreach (var property in keyProperties)
         {
-            sb.AppendLine($"<th>{header}</th>");
+            sb.AppendLine($"<th>{property}</th>");
+        }
+
+        foreach (var property in diffProperties)
+        {
+            sb.AppendLine("<th>Reference</th><th>Target</th>");
         }
         sb.AppendLine("</tr>");
 
@@ -133,10 +172,22 @@ public class HtmlExporter<T>
         foreach (var row in dataList.Take(MaxRowsPerTable))
         {
             sb.AppendLine("<tr>");
-            foreach (var value in row.Values)
+
+            // Key properties
+            foreach (var keyProp in keyProperties)
             {
-                sb.AppendLine($"<td>{value}</td>");
+                sb.AppendLine($"<td>{row[$"Key_{keyProp}"]}</td>");
             }
+
+            // Different properties
+            foreach (var diffProp in diffProperties)
+            {
+                sb.AppendLine($"<td>{row[$"Reference_{diffProp}"]}</td>");
+                sb.AppendLine($"<td>{row[$"Target_{diffProp}"]}</td>");
+            }
+
+            sb.AppendLine("</td>");
+
             sb.AppendLine("</tr>");
             rowsAdded++;
         }
@@ -144,6 +195,7 @@ public class HtmlExporter<T>
         sb.AppendLine("</table>");
         sb.AppendLine("</div>");
     }
+
 
     private void AddCollapsibleListPanels(StringBuilder sb, string panelName, List<T>? dataList)
     {
@@ -183,6 +235,14 @@ public class HtmlExporter<T>
 
     private void OpenHtmlFile(string filePath)
     {
-        // Code to open the HTML file in the default browser
+        try
+        {
+            // Start the default application associated with Excel
+            Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error opening Excel file: {ex.Message}");
+        }
     }
 }
