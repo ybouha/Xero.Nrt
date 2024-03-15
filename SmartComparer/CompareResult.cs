@@ -1,14 +1,15 @@
-﻿using System.ComponentModel;
+﻿using Collections.Pooled;
+using System.ComponentModel;
 
 namespace SmartComparer;
 
-public class CompareResult<T> : List<Dictionary<string, object>>, ITypedList
+public class CompareResult<T> : List<PooledDictionary<string, object>>, ITypedList
 {
-    public Dictionary<string, object> FirstRow
+    public PooledDictionary<string, object> FirstRow
     {
         get
         {
-            if (Count == 0) return new Dictionary<string, object>();
+            if (Count == 0) return new PooledDictionary<string, object>();
             int maxCnt = this.Max(c => c.Count);
             return this.First(d => d.Count == maxCnt);
         }
@@ -21,7 +22,7 @@ public class CompareResult<T> : List<Dictionary<string, object>>, ITypedList
     public List<T>? OnlyInTarget { get; internal set; } = new();
 
 
-    public CompareResult(List<Dictionary<string, object>>? data) : base(data)
+    public CompareResult(List<PooledDictionary<string, object>>? data) : base(data)
     {
         ColumnTypes = FirstRow.Keys.ToDictionary(column => column, column => FirstRow[column]?.GetType() ?? typeof(string));
     }

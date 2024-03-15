@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Collections.Pooled;
 using FastMember;
 using OfficeOpenXml;
 
@@ -34,7 +35,7 @@ namespace SmartComparer
             index = AddListWorksheets(package, "OnlyInTarget", onlyInTarget, index);
         }
 
-        private int AddWorksheet(ExcelPackage package, string worksheetName, List<Dictionary<string, object>> dataList, int index)
+        private int AddWorksheet(ExcelPackage package, string worksheetName, List<PooledDictionary<string, object>> dataList, int index)
         {
             int remainingRows = dataList.Count;
             int sheetIndex = 1;

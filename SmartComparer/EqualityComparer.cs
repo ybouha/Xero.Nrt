@@ -1,5 +1,4 @@
 ﻿using FastMember;
-using System.Linq.Expressions;
 
 namespace SmartComparer
 {
@@ -16,24 +15,39 @@ namespace SmartComparer
 
         public bool Equals(T? x, T? y)
         {
-            return _keyPops.All(column =>
+            return _keyPops.All(prop =>
             {
-                object value1 = _typeAccessor[x, column];
-                object value2 = _typeAccessor[y, column];
+                object value1 = _typeAccessor[x, prop];
+                object value2 = _typeAccessor[y, prop];
                 return value1?.Equals(value2) ?? value2 == null;
             });
         }
 
+        //public int GetHashCode(T obj)
+        //{
+        //    var hashCode = new HashCode();
+        //    _keyPops.ForEach(p =>
+        //    {
+        //        hashCode.Add(_typeAccessor[obj, p]);
+        //    });
+        //    return hashCode.ToHashCode();
+        //}
+
+
         public int GetHashCode(T obj)
         {
-            var hashCode = new HashCode();
-            _keyPops.ForEach(p =>
+            // Combine hash codes of all key properties
+            unchecked
             {
-                hashCode.Add(_typeAccessor[obj, p]);
-            });
-            return hashCode.ToHashCode();
+                int hashCode = 17;
+                foreach (var prop in _keyPops)
+                {
+                    object value = _typeAccessor[obj, prop];
+                    hashCode = hashCode * 31 + (value?.GetHashCode() ?? 0);
+                }
+                return hashCode;
+            }
         }
-
 
     }
 

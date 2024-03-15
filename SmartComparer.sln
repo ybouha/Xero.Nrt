@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34511.84
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartComparer", "SmartComparer\SmartComparer.csproj", "{99320A34-6224-45BE-ABFA-728F38F1F4BD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SmartComparer", "SmartComparer\SmartComparer.csproj", "{99320A34-6224-45BE-ABFA-728F38F1F4BD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NewFolder1", "NewFolder1", "{0E6AE84B-2D86-4CE5-BBF7-9C915566A2BE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

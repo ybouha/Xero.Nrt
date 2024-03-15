@@ -1,5 +1,6 @@
 ﻿using FastMember;
 using System.Diagnostics;
+using Collections.Pooled;
 
 namespace SmartComparer;
 
@@ -49,7 +50,7 @@ public class ListComparer<T> where T : class, new()
     {
         List<T>? onlyInTarget = null;
         List<T>? onlyInReference = null;
-        List<Dictionary<string, object>>? inBothButDiff = null;
+        List<PooledDictionary<string, object>>? inBothButDiff = new List<PooledDictionary<string, object>>();
 
         var comparerSet = new HashSetComparer<T>(referenceItems.Count, targetItems.Count, keyEqComparer);
 
@@ -60,6 +61,9 @@ public class ListComparer<T> where T : class, new()
             MeasureTimeAsync(() => Task.Run(() => referenceItems.ForEach(x => comparerSet.AddLeftItem(x))), "Build Ref HashSet"),
             MeasureTimeAsync(() => Task.Run(() => targetItems.ForEach(x => comparerSet.AddRightItem(x))), "Build Target HashSet")
         );
+
+        //onlyInTarget = MeasureTime(() => comparerSet.OnlyInRight().ToList(), "Get OnlyInTarget");
+
 
         Parallel.Invoke(
             new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
@@ -82,7 +86,7 @@ public class ListComparer<T> where T : class, new()
 
     }
 
-    private List<Dictionary<string, object>> CompareInBoth(IEnumerable<(T, T)> inBothEnumerator)
+    private List<PooledDictionary<string, object>> CompareInBoth(IEnumerable<(T, T)> inBothEnumerator)
     {
         return inBothEnumerator.AsParallel()
             .Select(couple => CompareProperties(couple.Item1, couple.Item2))
@@ -90,10 +94,10 @@ public class ListComparer<T> where T : class, new()
             .ToList();
     }
 
-    private Dictionary<string, object> CompareProperties(T referenceItem, T targetItem)
+    private PooledDictionary<string, object> CompareProperties(T referenceItem, T targetItem)
     {
         var keyValues = GetKeyValues(referenceItem);
-        Dictionary<string, object> diff = new Dictionary<string, object>();
+        var diff = new PooledDictionary<string, object>();
         foreach (var property in _propNamesToCompare)
         {
             var referenceValue = accessor[referenceItem, property];

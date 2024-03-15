@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using Collections.Pooled;
 using FastMember;
 
 namespace SmartComparer;
@@ -118,7 +119,7 @@ public class HtmlExporter<T>
         return sb.ToString();
     }
 
-    private void AddCollapsiblePanels(StringBuilder sb, string panelName, List<Dictionary<string, object>> dataList)
+    private void AddCollapsiblePanels(StringBuilder sb, string panelName, List<PooledDictionary<string, object>> dataList)
     {
         if (dataList == null || dataList.Count == 0)
             return;
