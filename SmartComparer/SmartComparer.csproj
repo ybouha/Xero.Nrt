@@ -8,11 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="DataAccess\FileName.txt" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="DataAccess\FileName.txt" />
+    <Compile Remove="DataAccess\**" />
+    <EmbeddedResource Remove="DataAccess\**" />
+    <None Remove="DataAccess\**" />
   </ItemGroup>
 
   <ItemGroup>

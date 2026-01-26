@@ -42,7 +42,7 @@ public class ListComparer<T> where T : class, new()
         sw.Start();
         TResult result = taskFunc();
         sw.Stop();
-        Console.WriteLine($"Elapsed Time for {action}:{sw.Elapsed.TotalSeconds:N}");
+        Console.WriteLine($"Elapsed Time(seconds) for {action}:{sw.Elapsed.TotalSeconds:N}");
         return result;
     }
 
