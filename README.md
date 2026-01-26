@@ -4,11 +4,12 @@
 
 ## Features
 
-- **High Performance**: Uses `FastMember` for rapid property access and `HashSet` for O(1) lookups.
+- **High Performance**: Uses **Compiled Expression Trees** for rapid property access and `HashSet` for O(1) lookups.
 - **Memory Efficient**: Utilizes `Collections.Pooled` to reduce garbage collection pressure during large comparisons.
 - **Detailed Reporting**:
   - **Excel Export**: Generates multi-sheet Excel reports highlighting differences (`EPPlus`).
   - **HTML Export**: Creates interactive HTML reports with collapsible sections.
+  - **Console Gantt Chart**: Visualizes parallel task execution timeline in the console.
 - **Flexible Comparison**:
   - Compare by specific key properties.
   - Ignore specific properties during comparison.
@@ -23,7 +24,6 @@
 ### Dependencies
 
 This project relies on the following key NuGet packages:
-- `FastMember.NetCore`
 - `EPPlus.Core`
 - `Collections.Pooled`
 - `CommandLineParser`
