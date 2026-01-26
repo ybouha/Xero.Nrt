@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Collections.Pooled;
-using FastMember;
 using OfficeOpenXml;
 
 namespace SmartComparer
@@ -77,7 +77,10 @@ namespace SmartComparer
             if (dataList == null || dataList.Count == 0)
                 return index;
 
-            var accessor = TypeAccessor.Create(typeof(T));
+            var typeMembers = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
+                .ToArray();
+
             int remainingRows = dataList.Count;
             int sheetIndex = 1;
 
@@ -86,7 +89,7 @@ namespace SmartComparer
                 var worksheet = package.Workbook.Worksheets.Add($"{worksheetName}_{sheetIndex}");
 
                 // Add headers
-                var headers = accessor.GetMembers().Select(m => m.Name).ToList();
+                var headers = typeMembers.Select(m => m.Name).ToList();
                 for (int i = 0; i < headers.Count; i++)
                 {
                     worksheet.Cells[1, i + 1].Value = headers[i];
@@ -100,7 +103,7 @@ namespace SmartComparer
                     var rowData = dataList[row];
                     for (int col = 0; col < headers.Count; col++)
                     {
-                        worksheet.Cells[row + 2, col + 1].Value = accessor[dataList[row], headers[col]];
+                        worksheet.Cells[row + 2, col + 1].Value = typeMembers[col].GetValue(dataList[row]);
                     }
                 }
 

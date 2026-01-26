@@ -3,18 +3,23 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Collections.Pooled;
-using FastMember;
 
 namespace SmartComparer;
 
 public class HtmlExporter<T>
 {
+    private readonly PropertyInfo[] _typeMembers;
 
-    MemberSet _typeMembers = TypeAccessor.Create(typeof(T)).GetMembers();
-    TypeAccessor accessor = TypeAccessor.Create(typeof(T));
+    public HtmlExporter()
+    {
+        _typeMembers = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
+            .ToArray();
+    }
 
     private const int MaxRowsPerTable = 100; // Maximum rows per HTML table
 
@@ -152,7 +157,7 @@ public class HtmlExporter<T>
             sb.AppendLine($"<th colspan='2'>{property}</th>");
 
         // ComparedItems property
-        sb.AppendLine($"<th colspan='{_typeMembers.Count + 1}'>{comparedItemsProp}</th>");
+        sb.AppendLine($"<th colspan='{_typeMembers.Length + 1}'>{comparedItemsProp}</th>");
 
         sb.AppendLine("</tr>");
 
@@ -204,7 +209,7 @@ public class HtmlExporter<T>
                 sb.AppendLine($"<td>Reference</td>");
                 foreach (var property in _typeMembers)
                 {
-                    var value = accessor[comparedItems.ReferenceItem, property.Name];
+                    var value = property.GetValue(comparedItems.ReferenceItem);
                     sb.AppendLine($"<td>{value}</td>");
                 }
                 sb.AppendLine("</tr>");
@@ -213,7 +218,7 @@ public class HtmlExporter<T>
                 sb.AppendLine($"<td>Target</td>");
                 foreach (var property in _typeMembers)
                 {
-                    var value = accessor[comparedItems.TargetItem, property.Name];
+                    var value = property.GetValue(comparedItems.TargetItem);
                     sb.AppendLine($"<td>{value}</td>");
                 }
             }
@@ -237,16 +242,16 @@ public class HtmlExporter<T>
     {
         if (dataList == null || dataList.Count == 0)
             return;
-
-        var accessor = TypeAccessor.Create(typeof(T));
-
+        
+        // Use the cached _typeMembers for headers and access
+        
         sb.AppendLine($"<button class='collapsible'>{panelName}</button>");
         sb.AppendLine("<div class='content'>");
 
         // Add headers
         sb.AppendLine("<table class='tnrReport'>");
         sb.AppendLine("<tr>");
-        foreach (var member in accessor.GetMembers())
+        foreach (var member in _typeMembers)
         {
             sb.AppendLine($"<th>{member.Name}</th>");
         }
@@ -257,9 +262,9 @@ public class HtmlExporter<T>
         foreach (var item in dataList.Take(MaxRowsPerTable))
         {
             sb.AppendLine("<tr>");
-            foreach (var member in accessor.GetMembers())
+            foreach (var member in _typeMembers)
             {
-                sb.AppendLine($"<td>{accessor[item, member.Name]}</td>");
+                sb.AppendLine($"<td>{member.GetValue(item)}</td>");
             }
             sb.AppendLine("</tr>");
             rowsAdded++;

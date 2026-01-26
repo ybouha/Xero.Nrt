@@ -1,49 +1,40 @@
-﻿using FastMember;
+﻿using System.Reflection;
 
 namespace SmartComparer
 {
     public class EqualityComparerEx<T> : IEqualityComparer<T>
     {
-        private readonly List<string> _keyPops;
-        private readonly TypeAccessor _typeAccessor;
+        private readonly List<Func<T, object>> _keyGetters;
 
-        public EqualityComparerEx(List<string> keyPops)
+        public EqualityComparerEx(List<Func<T, object>> keyGetters)
         {
-            _keyPops = keyPops;
-            _typeAccessor = TypeAccessor.Create(typeof(T));
+            _keyGetters = keyGetters;
         }
 
         public bool Equals(T? x, T? y)
         {
-            return _keyPops.All(prop =>
+            if (ReferenceEquals(x, y)) return true;
+            if (x == null || y == null) return false;
+
+            for (int i = 0; i < _keyGetters.Count; i++)
             {
-                object value1 = _typeAccessor[x, prop];
-                object value2 = _typeAccessor[y, prop];
-                return value1?.Equals(value2) ?? value2 == null;
-            });
+                var val1 = _keyGetters[i](x);
+                var val2 = _keyGetters[i](y);
+                if (!Equals(val1, val2)) return false;
+            }
+            return true;
         }
-
-        //public int GetHashCode(T obj)
-        //{
-        //    var hashCode = new HashCode();
-        //    _keyPops.ForEach(p =>
-        //    {
-        //        hashCode.Add(_typeAccessor[obj, p]);
-        //    });
-        //    return hashCode.ToHashCode();
-        //}
-
 
         public int GetHashCode(T obj)
         {
-            // Combine hash codes of all key properties
+            if (obj == null) return 0;
             unchecked
             {
                 int hashCode = 17;
-                foreach (var prop in _keyPops)
+                for (int i = 0; i < _keyGetters.Count; i++)
                 {
-                    object value = _typeAccessor[obj, prop];
-                    hashCode = hashCode * 31 + (value?.GetHashCode() ?? 0);
+                    var val = _keyGetters[i](obj);
+                    hashCode = hashCode * 31 + (val?.GetHashCode() ?? 0);
                 }
                 return hashCode;
             }

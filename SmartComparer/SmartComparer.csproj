@@ -17,7 +17,6 @@
     <PackageReference Include="Collections.Pooled" Version="1.0.82" />
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
     <PackageReference Include="EPPlus.Core" Version="1.5.4" />
-    <PackageReference Include="FastMember.NetCore" Version="1.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.3" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
   </ItemGroup>

@@ -1,29 +1,63 @@
-﻿using FastMember;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Collections.Pooled;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace SmartComparer;
 
 public class ListComparer<T> where T : class, new()
 {
-    private readonly List<string> keyProperties;
+    // Store name and getter for iterating and creating the diff dictionary
+    private readonly List<(string Name, Func<T, object> Getter)> _keyPropertiesData; 
+    private readonly List<(string Name, Func<T, object> Getter)> _propertiesToCompareData;
 
-    private readonly TypeAccessor accessor;
     private readonly EqualityComparerEx<T> keyEqComparer;
-    private List<string> _propNamesToCompare;
 
     public ListComparer(List<string> keyProperties, List<string> ignoreProperties)
     {
-        this.keyProperties = keyProperties;
-        accessor = TypeAccessor.Create(typeof(T));
-        keyEqComparer = new EqualityComparerEx<T>(keyProperties);
+        _keyPropertiesData = new List<(string Name, Func<T, object> Getter)>(keyProperties.Count);
+        var keyGetters = new List<Func<T, object>>(keyProperties.Count);
 
-        _propNamesToCompare = accessor.GetMembers().Where(m => m.Type != typeof(object)
-            && !ignoreProperties.Contains(m.Name)
-            && !keyProperties.Contains(m.Name)
-            ).Select(x => x.Name).ToList();
+        foreach (var propName in keyProperties)
+        {
+             var getter = CreatePropertyGetter(propName);
+             _keyPropertiesData.Add((propName, getter));
+             keyGetters.Add(getter);
+        }
+        
+        // Use fast member just to get the list of properties to compare easily, or standard reflection. 
+        // Standard reflection is fine for init.
+        var allProps = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                                .Where(p => p.CanRead && p.GetIndexParameters().Length == 0);
 
+        _propertiesToCompareData = new List<(string Name, Func<T, object> Getter)>();
 
+        foreach (var prop in allProps)
+        {
+            if (ignoreProperties.Contains(prop.Name)) continue;
+            if (keyProperties.Contains(prop.Name)) continue;
+            
+            _propertiesToCompareData.Add((prop.Name, CreatePropertyGetter(prop)));
+        }
+
+        keyEqComparer = new EqualityComparerEx<T>(keyGetters);
+    }
+    
+    private Func<T, object> CreatePropertyGetter(string propertyName)
+    {
+        var propInfo = typeof(T).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
+        if (propInfo == null) throw new ArgumentException($"Property {propertyName} not found on {typeof(T).Name}");
+        return CreatePropertyGetter(propInfo);
+    }
+
+    private Func<T, object> CreatePropertyGetter(PropertyInfo propInfo)
+    {
+        var parameter = Expression.Parameter(typeof(T), "i");
+        var propertyAccess = Expression.Property(parameter, propInfo);
+        
+        // Handle value types by converting to object
+        var conversion = Expression.Convert(propertyAccess, typeof(object));
+        return Expression.Lambda<Func<T, object>>(conversion, parameter).Compile();
     }
 
     private async Task MeasureTimeAsync(Func<Task> taskFunc, string action)
@@ -32,7 +66,7 @@ public class ListComparer<T> where T : class, new()
         sw.Start();
         await taskFunc();
         sw.Stop();
-        Console.WriteLine($"Elapsed Time for {action}:{sw.Elapsed.TotalSeconds:N}");
+        Console.WriteLine($"Elapsed Time(seconds) for {action}:{sw.Elapsed.TotalSeconds:N}");
     }
 
 
@@ -61,9 +95,6 @@ public class ListComparer<T> where T : class, new()
             MeasureTimeAsync(() => Task.Run(() => referenceItems.ForEach(x => comparerSet.AddLeftItem(x))), "Build Ref HashSet"),
             MeasureTimeAsync(() => Task.Run(() => targetItems.ForEach(x => comparerSet.AddRightItem(x))), "Build Target HashSet")
         );
-
-        //onlyInTarget = MeasureTime(() => comparerSet.OnlyInRight().ToList(), "Get OnlyInTarget");
-
 
         Parallel.Invoke(
             new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
@@ -96,40 +127,36 @@ public class ListComparer<T> where T : class, new()
 
     private PooledDictionary<string, object> CompareProperties(T referenceItem, T targetItem)
     {
-        var keyValues = GetKeyValues(referenceItem);
-        var diff = new PooledDictionary<string, object>();
-        foreach (var property in _propNamesToCompare)
+        // Optimization: Don't allocate anything until we find a difference
+        PooledDictionary<string, object>? diff = null;
+
+        for (int i = 0; i < _propertiesToCompareData.Count; i++)
         {
-            var referenceValue = accessor[referenceItem, property];
-            var targetValue = accessor[targetItem, property];
+            var propName = _propertiesToCompareData[i].Name;
+            var getter = _propertiesToCompareData[i].Getter;
+
+            var referenceValue = getter(referenceItem);
+            var targetValue = getter(targetItem);
+
             if (Equals(referenceValue, targetValue)) continue;
 
-            diff.Add($"Reference_{property}", referenceValue);
-            diff.Add($"Target_{property}", targetValue);
-           
+            if (diff == null) diff = new PooledDictionary<string, object>();
+
+            diff.Add($"Reference_{propName}", referenceValue);
+            diff.Add($"Target_{propName}", targetValue);
         }
 
-        if (diff.Count == 0 ) return diff;
-        foreach (var keyValuePair in keyValues)
+        if (diff == null) return new PooledDictionary<string, object>(); // Empty dictionary if no diffs
+
+        // Add Key Values
+        for (int i = 0; i < _keyPropertiesData.Count; i++)
         {
-            diff.Add($"Key_{keyValuePair.Key}", keyValuePair.Value);
+            var propName = _keyPropertiesData[i].Name;
+            var getter = _keyPropertiesData[i].Getter;
+            diff.Add($"Key_{propName}", getter(referenceItem));
         }
+
         diff.Add("ComparedItems", new CoupleItem<T>(referenceItem, targetItem));
         return diff;
     }
-
-
-
-    private Dictionary<string, object> GetKeyValues(T item)
-    {
-        var keyValues = new Dictionary<string, object>();
-        foreach (var keyProperty in keyProperties)
-        {
-            var value = accessor[item, keyProperty];
-            keyValues.Add(keyProperty, value);
-        }
-        return keyValues;
-    }
 }
-
-
