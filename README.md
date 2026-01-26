@@ -1,7 +1,7 @@
 # SmartComparer
 
 **SmartComparer** is a high-performance .NET library designed to efficiently compare large lists of objects. It leverages advanced memory management and fast reflection techniques to identify differences between two datasets quickly.
-
+![alt text](https://github.com/ybouha/SmartComparer/blob/master/SmartCompare.png?raw=true)
 ## Features
 
 - **High Performance**: Uses **Compiled Expression Trees** for rapid property access and `HashSet` for O(1) lookups.
