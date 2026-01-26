@@ -13,6 +13,18 @@ public class ListComparer<T> where T : class, new()
 
     private readonly EqualityComparerEx<T> keyEqComparer;
 
+    // Gantt Chart Data
+    public class TaskInfo
+    {
+        public string Name;
+        public long Start;   // in ms or seconds
+        public long End;
+        public long Duration => End - Start;
+    }
+
+    private List<TaskInfo> _taskTimings = new List<TaskInfo>();
+    private Stopwatch _globalStopwatch;
+
     public ListComparer(List<string> keyProperties, List<string> ignoreProperties)
     {
         _keyPropertiesData = new List<(string Name, Func<T, object> Getter)>(keyProperties.Count);
@@ -62,26 +74,49 @@ public class ListComparer<T> where T : class, new()
 
     private async Task MeasureTimeAsync(Func<Task> taskFunc, string action)
     {
+        long start = _globalStopwatch.ElapsedMilliseconds;
+        
         var sw = new Stopwatch();
         sw.Start();
         await taskFunc();
         sw.Stop();
+        
+        long end = _globalStopwatch.ElapsedMilliseconds;
+        
+        lock (_taskTimings)
+        {
+            _taskTimings.Add(new TaskInfo { Name = action, Start = start, End = end });
+        }
+        
         Console.WriteLine($"Elapsed Time(seconds) for {action}:{sw.Elapsed.TotalSeconds:N}");
     }
 
 
     private TResult MeasureTime<TResult>(Func<TResult> taskFunc, string action)
     {
+        long start = _globalStopwatch.ElapsedMilliseconds;
+
         var sw = new Stopwatch();
         sw.Start();
         TResult result = taskFunc();
         sw.Stop();
+        
+        long end = _globalStopwatch.ElapsedMilliseconds;
+
+        lock (_taskTimings)
+        {
+            _taskTimings.Add(new TaskInfo { Name = action, Start = start, End = end });
+        }
+
         Console.WriteLine($"Elapsed Time(seconds) for {action}:{sw.Elapsed.TotalSeconds:N}");
         return result;
     }
 
     public async Task<CompareResult<T>> CompareList(List<T> referenceItems, List<T> targetItems)
     {
+        _globalStopwatch = Stopwatch.StartNew();
+        _taskTimings.Clear();
+
         List<T>? onlyInTarget = null;
         List<T>? onlyInReference = null;
         List<PooledDictionary<string, object>>? inBothButDiff = new List<PooledDictionary<string, object>>();
@@ -113,9 +148,42 @@ public class ListComparer<T> where T : class, new()
         sw.Stop();
         Console.WriteLine($"Elapsed Time for Compare: {sw.Elapsed.TotalSeconds:N}");
 
+        DrawGantt(_taskTimings);
+
         return result;
 
     }
+
+    private void DrawGantt(List<TaskInfo> tasks)
+    {
+        if (tasks.Count == 0) return;
+        
+        long minTime = tasks.Min(t => t.Start);
+        long maxTime = tasks.Max(t => t.End);
+        long totalDuration = maxTime - minTime;
+        
+        const int chartWidth = 100; // Number of characters for the timeline
+        double scale = totalDuration > 0 ? (double)chartWidth / totalDuration : 1;
+
+        Console.WriteLine("\nParallel Task Visualization (Gantt Chart):");
+        Console.WriteLine(new string('-', chartWidth + 20));
+
+        foreach (var task in tasks.OrderBy(t => t.Start))
+        {
+            int startPos = (int)((task.Start - minTime) * scale);
+            int durationLength = (int)(task.Duration * scale);
+            if (durationLength == 0) durationLength = 1; // Ensure at least one char for very fast tasks
+
+            Console.Write($"{task.Name.PadRight(25)}: ");
+            
+            Console.Write(new string(' ', startPos));
+            Console.Write(new string('█', durationLength));
+            
+            Console.WriteLine($"  [{task.Start}ms - {task.End}ms] ({task.Duration}ms)");
+        }
+        Console.WriteLine(new string('-', chartWidth + 20));
+    }
+
 
     private List<PooledDictionary<string, object>> CompareInBoth(IEnumerable<(T, T)> inBothEnumerator)
     {
