@@ -1,5 +1,4 @@
-﻿using Collections.Pooled;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 namespace SmartComparer;
 
@@ -10,8 +9,10 @@ public class CompareResult<T> : List<PooledDictionary<string, object>>, ITypedLi
         get
         {
             if (Count == 0) return new PooledDictionary<string, object>();
-            int maxCnt = this.Max(c => c.Count);
-            return this.First(d => d.Count == maxCnt);
+            var best = this[0];
+            for (int i = 1; i < Count; i++)
+                if (this[i].Count > best.Count) best = this[i];
+            return best;
         }
     }
 

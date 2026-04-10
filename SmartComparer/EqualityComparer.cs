@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-namespace SmartComparer
+﻿namespace SmartComparer
 {
     public class EqualityComparerEx<T> : IEqualityComparer<T>
     {

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Collections.Pooled;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -8,8 +7,10 @@ namespace SmartComparer;
 public class ListComparer<T> where T : class, new()
 {
     // Store name and getter for iterating and creating the diff dictionary
-    private readonly List<(string Name, Func<T, object> Getter)> _keyPropertiesData; 
+    private readonly List<(string Name, Func<T, object> Getter)> _keyPropertiesData;
     private readonly List<(string Name, Func<T, object> Getter)> _propertiesToCompareData;
+    // Max entries a diff dict can hold: (Reference_ + Target_) per prop + Key_ per key + "ComparedItems"
+    private int _diffCapacity;
 
     private readonly EqualityComparerEx<T> keyEqComparer;
 
@@ -36,9 +37,11 @@ public class ListComparer<T> where T : class, new()
              _keyPropertiesData.Add((propName, getter));
              keyGetters.Add(getter);
         }
-        
-        // Use fast member just to get the list of properties to compare easily, or standard reflection. 
-        // Standard reflection is fine for init.
+
+        // Use HashSet<string> for O(1) property name lookups during filtering
+        var ignoreSet = new HashSet<string>(ignoreProperties);
+        var keySet = new HashSet<string>(keyProperties);
+
         var allProps = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
                                 .Where(p => p.CanRead && p.GetIndexParameters().Length == 0);
 
@@ -46,13 +49,14 @@ public class ListComparer<T> where T : class, new()
 
         foreach (var prop in allProps)
         {
-            if (ignoreProperties.Contains(prop.Name)) continue;
-            if (keyProperties.Contains(prop.Name)) continue;
-            
+            if (ignoreSet.Contains(prop.Name)) continue;
+            if (keySet.Contains(prop.Name)) continue;
+
             _propertiesToCompareData.Add((prop.Name, CreatePropertyGetter(prop)));
         }
 
         keyEqComparer = new EqualityComparerEx<T>(keyGetters);
+        _diffCapacity = _propertiesToCompareData.Count * 2 + _keyPropertiesData.Count + 1;
     }
     
     private Func<T, object> CreatePropertyGetter(string propertyName)
@@ -187,15 +191,18 @@ public class ListComparer<T> where T : class, new()
 
     private List<PooledDictionary<string, object>> CompareInBoth(IEnumerable<(T, T)> inBothEnumerator)
     {
-        return inBothEnumerator.AsParallel()
+        return inBothEnumerator
+            .AsParallel()
+            .WithDegreeOfParallelism(Environment.ProcessorCount)
             .Select(couple => CompareProperties(couple.Item1, couple.Item2))
-            .Where(diff => diff.Count > 0)
+            .Where(static diff => diff is not null)
+            .Select(static diff => diff!)
             .ToList();
     }
 
-    private PooledDictionary<string, object> CompareProperties(T referenceItem, T targetItem)
+    private PooledDictionary<string, object>? CompareProperties(T referenceItem, T targetItem)
     {
-        // Optimization: Don't allocate anything until we find a difference
+        // Don't allocate until we find a difference
         PooledDictionary<string, object>? diff = null;
 
         for (int i = 0; i < _propertiesToCompareData.Count; i++)
@@ -208,13 +215,13 @@ public class ListComparer<T> where T : class, new()
 
             if (Equals(referenceValue, targetValue)) continue;
 
-            if (diff == null) diff = new PooledDictionary<string, object>();
+            if (diff == null) diff = new PooledDictionary<string, object>(_diffCapacity);
 
             diff.Add($"Reference_{propName}", referenceValue);
             diff.Add($"Target_{propName}", targetValue);
         }
 
-        if (diff == null) return new PooledDictionary<string, object>(); // Empty dictionary if no diffs
+        if (diff == null) return null; // No differences — skip allocation entirely
 
         // Add Key Values
         for (int i = 0; i < _keyPropertiesData.Count; i++)

@@ -31,19 +31,11 @@
             InitializeRight(rightCount);
         }
 
-        public bool AddLeftItem(T value)
-        {
-            if (AddIfNotPresent(ref _leftSize, ref _leftLastIndex, _leftBuckets, _leftSlots, value))
-                return true;
-            return false;
-        }
+        public bool AddLeftItem(T value) =>
+            AddIfNotPresent(_leftSize, ref _leftLastIndex, _leftBuckets, _leftSlots, value);
 
-        public bool AddRightItem(T value)
-        {
-            if (AddIfNotPresent(ref _rightSize, ref _rightLastIndex, _rightBuckets, _rightSlots, value))
-                return true;
-            return false;
-        }
+        public bool AddRightItem(T value) =>
+            AddIfNotPresent(_rightSize, ref _rightLastIndex, _rightBuckets, _rightSlots, value);
 
         private int InternalGetHashCode(T item)
         {
@@ -52,7 +44,7 @@
         }
 
 
-        private bool AddIfNotPresent(ref int size, ref int lastIndex, int[] buckets, Slot[] slots, T value)
+        private bool AddIfNotPresent(int size, ref int lastIndex, int[] buckets, Slot[] slots, T value)
         {
             var hashCode = InternalGetHashCode(value);
             var bucket = hashCode % size;
@@ -95,10 +87,8 @@
         {
             for (int i = 0; i < _leftLastIndex; i++)
             {
-                if (_leftSlots[i].hashCode >= 0 && !Contains(_rightBuckets, _rightSlots, _leftSlots[i].value, out var rightItem))
-                {
+                if (!Contains(_rightBuckets, _rightSlots, _leftSlots[i].value, out _))
                     yield return _leftSlots[i].value;
-                }
             }
         }
 
@@ -106,10 +96,8 @@
         {
             for (int i = 0; i < _rightLastIndex; i++)
             {
-                if (_rightSlots[i].hashCode >= 0 && !Contains(_leftBuckets, _leftSlots, _rightSlots[i].value, out var lefValue))
-                {
+                if (!Contains(_leftBuckets, _leftSlots, _rightSlots[i].value, out _))
                     yield return _rightSlots[i].value;
-                }
             }
         }
 
@@ -117,11 +105,8 @@
         {
             for (int i = 0; i < _leftLastIndex; i++)
             {
-                if (_leftSlots[i].hashCode >= 0 && Contains(_rightBuckets, _rightSlots, _leftSlots[i].value, out var rightItem))
-                {
-                    var leftItem = _leftSlots[i].value;
-                    yield return (leftItem, rightItem);
-                }
+                if (Contains(_rightBuckets, _rightSlots, _leftSlots[i].value, out var rightItem))
+                    yield return (_leftSlots[i].value, rightItem);
             }
         }
 

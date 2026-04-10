@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 
 
-using System;
 using System.Diagnostics;
 
 namespace SmartComparer

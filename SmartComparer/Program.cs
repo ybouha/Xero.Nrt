@@ -46,15 +46,11 @@ public class Program
                 Id = item.Id,
                 Name = item.Name,
                 Price = idx < changesCount ? item.Price * 2 : item.Price,
-                Price1 = idx < changesCount ? item.Price1 * 2 : item.Price1
-
-            ,
-                Price2 = idx < changesCount ? item.Price2 * 2 : item.Price2
-                ,
+                Price1 = idx < changesCount ? item.Price1 * 2 : item.Price1,
+                Price2 = idx < changesCount ? item.Price2 * 2 : item.Price2,
                 Price3 = idx < changesCount ? item.Price3 * 2 : item.Price3
-
             }
-        ).ToList().Take(originalData.Count - 100).ToList();
+        ).Take(originalData.Count - 100).ToList();
 
 
         for (int i = changesCount; i < changesCount + 100; i++)
