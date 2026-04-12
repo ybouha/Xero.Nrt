@@ -1,0 +1,322 @@
+<div class="nrt-runs-layout">
+
+  <!-- ── Left: Main grid pane ────────────────────────────────────────────── -->
+  <div class="grid-pane">
+
+    <!-- Header -->
+    <div class="page-header">
+      <h1>NRT Runs</h1>
+      <div class="actions">
+        <a routerLink="/new-run" class="btn btn-primary">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Run
+        </a>
+        <button class="btn btn-outline">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <dx-select-box
+        [items]="statusOptions"
+        displayExpr="label"
+        valueExpr="value"
+        [value]="statusFilter"
+        placeholder="Status"
+        width="140"
+        stylingMode="outlined"
+        (onValueChanged)="onStatusFilterChange($event.value)">
+      </dx-select-box>
+
+      <button class="btn btn-ghost btn-sm" (click)="onStatusFilterChange(null)">
+        Clear filters
+      </button>
+
+      <span class="count-badge">{{ totalCount | number }} runs</span>
+    </div>
+
+    <!-- Data grid -->
+    <dx-load-indicator [visible]="loading" height="36" width="36" class="grid-loader" *ngIf="loading" />
+
+    <div class="grid-wrap card" *ngIf="!loading">
+      <dx-data-grid
+        [dataSource]="runs"
+        [showBorders]="false"
+        [showColumnLines]="false"
+        [rowAlternationEnabled]="false"
+        [hoverStateEnabled]="true"
+        keyExpr="runId"
+        (onRowClick)="onRowClick($event)">
+
+        <dxo-selection mode="multiple" showCheckBoxesMode="onClick"></dxo-selection>
+        <dxo-paging [enabled]="false"></dxo-paging>
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
+
+        <!-- Run ID -->
+        <dxi-column dataField="runId" caption="#" [width]="65" cellTemplate="idTpl" [allowSorting]="true">
+        </dxi-column>
+        <div *dxTemplate="let d of 'idTpl'">
+          <span class="run-id">#{{ d.value }}</span>
+        </div>
+
+        <!-- Scenario -->
+        <dxi-column dataField="scenarioName" caption="Scenario" [minWidth]="120"></dxi-column>
+
+        <!-- Ref → Target -->
+        <dxi-column caption="Ref → Target" cellTemplate="versionTpl" [minWidth]="200">
+        </dxi-column>
+        <div *dxTemplate="let d of 'versionTpl'">
+          <div class="version-pair">
+            <span class="ver ref">{{ d.data.referenceVersion }}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            <span class="ver tgt">{{ d.data.targetVersion }}</span>
+          </div>
+        </div>
+
+        <!-- Val Date -->
+        <dxi-column dataField="valuationDate" caption="Val Date" [width]="100" cellTemplate="dateTpl">
+        </dxi-column>
+        <div *dxTemplate="let d of 'dateTpl'">
+          <span class="mono-sm">{{ d.value }}</span>
+        </div>
+
+        <!-- Status -->
+        <dxi-column dataField="passed" caption="Status" [width]="90" cellTemplate="statusTpl">
+        </dxi-column>
+        <div *dxTemplate="let d of 'statusTpl'">
+          <span *ngIf="d.value === true"  class="badge pass"><span class="dot"></span>Pass</span>
+          <span *ngIf="d.value === false" class="badge fail"><span class="dot"></span>Fail</span>
+          <span *ngIf="d.value === null"  class="badge warn">Running</span>
+        </div>
+
+        <!-- Total rows -->
+        <dxi-column dataField="refRowCount" caption="Total Rows" [width]="100" cellTemplate="rowsTpl">
+        </dxi-column>
+        <div *dxTemplate="let d of 'rowsTpl'">
+          <span class="mono-sm">{{ d.value | number }}</span>
+        </div>
+
+        <!-- Diffs -->
+        <dxi-column dataField="diffRowCount" caption="Diffs" [width]="80" cellTemplate="diffTpl">
+        </dxi-column>
+        <div *dxTemplate="let d of 'diffTpl'">
+          <span class="diff-num" [class.has-diff]="(d.value ?? 0) > 0">{{ d.value ?? 0 | number }}</span>
+        </div>
+
+        <!-- Timestamp -->
+        <dxi-column dataField="runTimestamp" caption="Date" [width]="140" cellTemplate="tsTpl" sortOrder="desc">
+        </dxi-column>
+        <div *dxTemplate="let d of 'tsTpl'">
+          <span class="mono-sm ts">{{ d.value | date:'MMM d, HH:mm' }}</span>
+        </div>
+
+      </dx-data-grid>
+    </div>
+
+  </div><!-- /grid-pane -->
+
+  <!-- ── Right: Summary panel ────────────────────────────────────────────── -->
+  <aside class="summary-panel card">
+
+    <div class="panel-title">COMPARISON SUMMARY</div>
+    <div class="panel-sub">Last {{ runs.length }} runs</div>
+
+    <!-- Circular gauge -->
+    <div class="gauge-wrap">
+      <dx-circular-gauge
+        [value]="summaryStats.passRate">
+        <dxo-scale [startValue]="0" [endValue]="100" [tickInterval]="25">
+          <dxo-label [customizeText]="formatTooltip"></dxo-label>
+        </dxo-scale>
+        <dxo-range-container>
+          <dxi-range [startValue]="0"  [endValue]="50"  color="#f66d6d"></dxi-range>
+          <dxi-range [startValue]="50" [endValue]="80"  color="#f5a623"></dxi-range>
+          <dxi-range [startValue]="80" [endValue]="100" color="#3ecf8e"></dxi-range>
+        </dxo-range-container>
+        <dxo-value-indicator type="twoColorNeedle" [color]="gaugeColor"></dxo-value-indicator>
+        <dxo-geometry [startAngle]="180" [endAngle]="0"></dxo-geometry>
+      </dx-circular-gauge>
+      <div class="gauge-label">
+        <span class="gauge-value" [style.color]="gaugeColor">{{ summaryStats.passRate }}%</span>
+        <span class="gauge-sub">Pass Rate</span>
+      </div>
+    </div>
+
+    <!-- Counters -->
+    <div class="counters">
+      <div class="counter-row">
+        <span class="counter-label">Total Runs</span>
+        <span class="counter-value">{{ summaryStats.totalRuns | number }}</span>
+      </div>
+      <div class="counter-row">
+        <span class="counter-label">Passed</span>
+        <span class="counter-value pass-text">{{ passCount | number }}</span>
+      </div>
+      <div class="counter-row">
+        <span class="counter-label">Failed</span>
+        <span class="counter-value fail-text">{{ failCount | number }}</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title" style="margin-bottom:12px">DIFF BREAKDOWN</div>
+    <div class="counters">
+      <div class="counter-row">
+        <span class="counter-label">In Both (diff)</span>
+        <span class="counter-value" [class.fail-text]="summaryStats.totalDiffs > 0">
+          {{ summaryStats.totalDiffs | number }}
+        </span>
+      </div>
+      <div class="counter-row">
+        <span class="counter-label">Only in Reference</span>
+        <span class="counter-value" [class.warn-text]="summaryStats.onlyRef > 0">
+          {{ summaryStats.onlyRef | number }}
+        </span>
+      </div>
+      <div class="counter-row">
+        <span class="counter-label">Only in Target</span>
+        <span class="counter-value" [class.warn-text]="summaryStats.onlyTgt > 0">
+          {{ summaryStats.onlyTgt | number }}
+        </span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title" style="margin-bottom:12px">TOP SELLERS</div>
+    <div class="top-list">
+      <div *ngFor="let run of runs.slice(0,3)" class="top-item">
+        <div class="top-name">{{ run.scenarioName }}</div>
+        <span *ngIf="run.passed === true"  class="badge pass sm">PASS</span>
+        <span *ngIf="run.passed === false" class="badge fail sm">FAIL</span>
+      </div>
+    </div>
+
+  </aside>
+
+</div><!-- /nrt-runs-layout -->
+
+<!-- ── Run Detail Popup ──────────────────────────────────────────────────── -->
+<dx-popup
+  [(visible)]="detailVisible"
+  [width]="800"
+  [height]="'80vh'"
+  [showTitle]="true"
+  [title]="selectedRun ? 'Run #' + selectedRun.runId + ' — ' + selectedRun.scenarioName : 'Run Detail'"
+  [dragEnabled]="true"
+  [resizeEnabled]="true"
+  [showCloseButton]="true">
+
+  <div *dxTemplate="let data of 'content'" class="popup-content">
+
+    <div *ngIf="selectedRun" class="popup-meta">
+      <div class="meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Reference</span>
+          <span class="meta-value">{{ selectedRun.referenceVersion }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Target</span>
+          <span class="meta-value">{{ selectedRun.targetVersion }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Val Date</span>
+          <span class="meta-value mono-sm">{{ selectedRun.valuationDate }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Status</span>
+          <span *ngIf="selectedRun.passed === true"  class="badge pass"><span class="dot"></span>PASS</span>
+          <span *ngIf="selectedRun.passed === false" class="badge fail"><span class="dot"></span>FAIL</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Ref Rows</span>
+          <span class="meta-value">{{ selectedRun.refRowCount | number }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Tgt Rows</span>
+          <span class="meta-value">{{ selectedRun.tgtRowCount | number }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Diffs</span>
+          <span class="meta-value" [class.fail-text]="(selectedRun.diffRowCount ?? 0) > 0">
+            {{ selectedRun.diffRowCount | number }}
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Only in Ref</span>
+          <span class="meta-value warn-text">{{ selectedRun.onlyInRefCount | number }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diff type filter -->
+    <div class="popup-filter">
+      <dx-select-box
+        [items]="diffTypeOptions"
+        displayExpr="label"
+        valueExpr="value"
+        [value]="diffTypeFilter"
+        width="200"
+        stylingMode="outlined"
+        (onValueChanged)="onDiffTypeChange($event.value)">
+      </dx-select-box>
+      <span class="count-badge">{{ diffs.length }} rows</span>
+    </div>
+
+    <dx-load-indicator [visible]="diffsLoading" height="30" width="30" *ngIf="diffsLoading" />
+
+    <!-- Diffs grid -->
+    <dx-data-grid
+      *ngIf="!diffsLoading"
+      [dataSource]="diffs"
+      [showBorders]="false"
+      [showColumnLines]="false"
+      [hoverStateEnabled]="true"
+      keyExpr="id"
+      height="380">
+
+      <dxo-paging [pageSize]="50"></dxo-paging>
+      <dxo-pager [showInfo]="true"></dxo-pager>
+
+      <dxi-column dataField="tradeId"    caption="Trade ID"   [width]="130" cellTemplate="cellMono"></dxi-column>
+      <dxi-column dataField="book"       caption="Book"       [width]="110"></dxi-column>
+      <dxi-column dataField="desk"       caption="Desk"       [width]="100"></dxi-column>
+      <dxi-column dataField="riskFactor" caption="Risk Factor" [width]="120"></dxi-column>
+      <dxi-column dataField="diffType"   caption="Type"       [width]="130" cellTemplate="diffTypeTpl"></dxi-column>
+      <dxi-column dataField="diffs"      caption="Diffs"      cellTemplate="diffsTpl"></dxi-column>
+
+      <div *dxTemplate="let d of 'cellMono'">
+        <span class="mono-sm">{{ d.value }}</span>
+      </div>
+      <div *dxTemplate="let d of 'diffTypeTpl'">
+        <span *ngIf="d.value === 'InBothButDiff'"   class="badge diff sm">Both (diff)</span>
+        <span *ngIf="d.value === 'OnlyInReference'" class="badge warn sm">Only Ref</span>
+        <span *ngIf="d.value === 'OnlyInTarget'"    class="badge warn sm">Only Tgt</span>
+      </div>
+      <div *dxTemplate="let d of 'diffsTpl'">
+        <div class="diffs-inline">
+          <span *ngFor="let df of parseDiffs(d.value)" class="diff-field">
+            <span class="df-name">{{ df.field }}</span>
+            <span class="df-ref">{{ df.ref }}</span>
+            <span class="df-arrow">→</span>
+            <span class="df-tgt">{{ df.tgt }}</span>
+            <ng-container *ngIf="isNumeric(df.ref) && isNumeric(df.tgt)">
+              <span class="df-delta"
+                    [class.pos-delta]="calcDelta(df.ref, df.tgt) > 0"
+                    [class.neg-delta]="calcDelta(df.ref, df.tgt) < 0">
+                ({{ calcDelta(df.ref, df.tgt) > 0 ? '+' : '' }}{{ calcDelta(df.ref, df.tgt) | number:'1.2-4' }})
+              </span>
+            </ng-container>
+          </span>
+        </div>
+      </div>
+
+    </dx-data-grid>
+
+  </div>
+
+</dx-popup>

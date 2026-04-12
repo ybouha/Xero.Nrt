@@ -1,0 +1,65 @@
+<aside class="sidebar">
+
+  <!-- Logo -->
+  <div class="logo">
+    <div class="logo-mark">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <rect width="24" height="24" rx="6" fill="#4f8ef7"/>
+        <path d="M6 12h12M12 6v12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span class="logo-text">Xero NRT</span>
+    <span class="logo-version">v1.0</span>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search-box">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+        <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Search…</span>
+      <kbd>⌘K</kbd>
+    </div>
+  </div>
+
+  <!-- Main navigation -->
+  <nav class="nav-section">
+    <a *ngFor="let item of mainNav"
+       [routerLink]="item.route"
+       routerLinkActive="active"
+       class="nav-item">
+      <span class="nav-icon" [innerHTML]="getIcon(item.icon)"></span>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <div class="spacer"></div>
+
+  <!-- Bottom navigation -->
+  <nav class="nav-section bottom">
+    <a *ngFor="let item of bottomNav"
+       [routerLink]="item.route"
+       routerLinkActive="active"
+       class="nav-item">
+      <span class="nav-icon" [innerHTML]="getIcon(item.icon)"></span>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <!-- User avatar -->
+  <div class="user-row">
+    <div class="avatar">OW</div>
+    <div class="user-info">
+      <div class="user-name">Xero NRT</div>
+      <div class="user-role">Admin</div>
+    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="more-icon">
+      <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
+      <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+      <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
+    </svg>
+  </div>
+
+</aside>

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/layout/layout.component.scss"],
+  "sourcesContent": [".shell {\n  display: flex;\n  height: 100vh;\n  overflow: hidden;\n}\n\n.main-content {\n  flex: 1;\n  overflow-y: auto;\n  background: var(--content-bg);\n  padding: 28px 28px 28px 28px;\n}\n"],
+  "mappings": ";AAAA,CAAA;AACE,WAAA;AACA,UAAA;AACA,YAAA;;AAGF,CAAA;AACE,QAAA;AACA,cAAA;AACA,cAAA,IAAA;AACA,WAAA,KAAA,KAAA,KAAA;;",
+  "names": []
+}

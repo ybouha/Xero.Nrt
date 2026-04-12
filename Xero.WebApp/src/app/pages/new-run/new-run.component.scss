@@ -1,0 +1,88 @@
+.new-run-page { max-width: 1200px; }
+
+.subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+.page-header { margin-bottom: 24px; h1 { font-size: 22px; font-weight: 700; } }
+
+.run-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+.form-pane { display: flex; flex-direction: column; gap: 16px; }
+
+.form-section { }
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: 14px;
+}
+
+.submit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+// Result pane
+.result-pane { position: sticky; top: 0; }
+
+.idle-panel, .running-panel, .error-panel, .success-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  gap: 10px;
+}
+
+.idle-icon { color: var(--text-secondary); margin-bottom: 4px; }
+
+.idle-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.idle-sub   { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+.error-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(246,109,109,.15);
+  color: var(--fail-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.error-msg { font-size: 12px; color: var(--fail-color); word-break: break-word; }
+
+.result-status { margin-bottom: 4px; .badge { font-size: 14px; padding: 5px 14px; } }
+.result-headline { font-size: 18px; font-weight: 700; }
+.result-sub { font-size: 12px; color: var(--text-secondary); }
+
+.result-counters {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0 16px;
+}
+
+.res-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+
+  span { color: var(--text-secondary); }
+  strong { color: var(--text-primary); font-weight: 600; }
+}
+
+.fail-text { color: var(--fail-color) !important; }
+.warn-text { color: var(--warn-color) !important; }

@@ -1,0 +1,201 @@
+<div class="new-run-page">
+
+  <div class="page-header">
+    <div>
+      <h1>New NRT Run</h1>
+      <p class="subtitle">Configure and execute a comparison run</p>
+    </div>
+  </div>
+
+  <div class="run-layout">
+
+    <!-- ── Form ────────────────────────────────────────────────────── -->
+    <div class="form-pane">
+
+      <!-- General -->
+      <div class="card form-section">
+        <div class="section-title">General</div>
+        <dx-form [formData]="formData" [showColonAfterLabel]="false" labelMode="outside">
+          <dxi-item itemType="group" [colCount]="3">
+            <dxi-item dataField="scenarioName"     label.text="Scenario Name"     editorType="dxTextBox"></dxi-item>
+            <dxi-item dataField="referenceVersion" label.text="Reference Version" editorType="dxTextBox"></dxi-item>
+            <dxi-item dataField="targetVersion"    label.text="Target Version"    editorType="dxTextBox"></dxi-item>
+          </dxi-item>
+          <dxi-item dataField="valuationDate" label.text="Valuation Date" editorType="dxDateBox"
+            [editorOptions]="{ type: 'date', displayFormat: 'yyyy-MM-dd' }">
+          </dxi-item>
+        </dx-form>
+      </div>
+
+      <!-- Reference DB -->
+      <div class="card form-section">
+        <div class="section-title">Reference Database</div>
+        <dx-form [formData]="formData.reference" [showColonAfterLabel]="false" labelMode="outside">
+          <dxi-item itemType="group" [colCount]="2">
+            <dxi-item dataField="provider" label.text="Provider" editorType="dxSelectBox"
+              [editorOptions]="{ items: providerOptions }">
+            </dxi-item>
+            <dxi-item dataField="timeoutSeconds" label.text="Timeout (sec)" editorType="dxNumberBox"></dxi-item>
+          </dxi-item>
+          <dxi-item dataField="connectionString" label.text="Connection String" editorType="dxTextBox"></dxi-item>
+          <dxi-item label.text="SQL Query">
+            <div *dxTemplate>
+              <dx-text-area [(value)]="formData.reference.query" [height]="100" stylingMode="outlined"></dx-text-area>
+            </div>
+          </dxi-item>
+        </dx-form>
+      </div>
+
+      <!-- Target DB -->
+      <div class="card form-section">
+        <div class="section-title">Target Database</div>
+        <dx-form [formData]="formData.target" [showColonAfterLabel]="false" labelMode="outside">
+          <dxi-item itemType="group" [colCount]="2">
+            <dxi-item dataField="provider" label.text="Provider" editorType="dxSelectBox"
+              [editorOptions]="{ items: providerOptions }">
+            </dxi-item>
+            <dxi-item dataField="timeoutSeconds" label.text="Timeout (sec)" editorType="dxNumberBox"></dxi-item>
+          </dxi-item>
+          <dxi-item dataField="connectionString" label.text="Connection String" editorType="dxTextBox"></dxi-item>
+          <dxi-item label.text="SQL Query">
+            <div *dxTemplate>
+              <dx-text-area [(value)]="formData.target.query" [height]="100" stylingMode="outlined"></dx-text-area>
+            </div>
+          </dxi-item>
+        </dx-form>
+      </div>
+
+      <!-- Compare & Output -->
+      <div class="card form-section">
+        <div class="section-title">Compare Settings</div>
+        <dx-form [formData]="formData.compare" [showColonAfterLabel]="false" labelMode="outside">
+          <dxi-item label.text="Key Properties">
+            <div *dxTemplate>
+              <dx-tag-box
+                [(value)]="formData.compare.keyProperties"
+                [acceptCustomValue]="true"
+                stylingMode="outlined"
+                placeholder="e.g. TradeId, Book…">
+              </dx-tag-box>
+            </div>
+          </dxi-item>
+          <dxi-item label.text="Compare Properties (empty = all non-key)">
+            <div *dxTemplate>
+              <dx-tag-box
+                [(value)]="formData.compare.compareProperties"
+                [acceptCustomValue]="true"
+                stylingMode="outlined"
+                placeholder="Leave empty to compare all">
+              </dx-tag-box>
+            </div>
+          </dxi-item>
+        </dx-form>
+      </div>
+
+      <!-- Output -->
+      <div class="card form-section">
+        <div class="section-title">Diff Output (Database)</div>
+        <dx-form [formData]="formData.output.diffDb" [showColonAfterLabel]="false" labelMode="outside">
+          <dxi-item itemType="group" [colCount]="2">
+            <dxi-item dataField="enabled" label.text="Enabled" editorType="dxCheckBox"></dxi-item>
+            <dxi-item dataField="provider" label.text="Provider" editorType="dxSelectBox"
+              [editorOptions]="{ items: providerOptions }">
+            </dxi-item>
+          </dxi-item>
+          <dxi-item dataField="connectionString" label.text="Connection String" editorType="dxTextBox"></dxi-item>
+          <dxi-item dataField="tableName" label.text="Table Name" editorType="dxTextBox"></dxi-item>
+        </dx-form>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-row">
+        <dx-button
+          text="Execute NRT Run"
+          type="default"
+          stylingMode="contained"
+          [disabled]="submitting"
+          (onClick)="submitRun()">
+        </dx-button>
+        <dx-load-indicator [visible]="submitting" height="24" width="24" *ngIf="submitting" />
+      </div>
+
+    </div>
+
+    <!-- ── Result panel ────────────────────────────────────────────── -->
+    <aside class="result-pane">
+
+      <!-- Idle state -->
+      <div *ngIf="!result && !error && !submitting" class="idle-panel card">
+        <div class="idle-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <div class="idle-title">Ready to Run</div>
+        <div class="idle-sub">Configure the settings on the left and click <strong>Execute NRT Run</strong> to start.</div>
+      </div>
+
+      <!-- Running -->
+      <div *ngIf="submitting" class="running-panel card">
+        <dx-load-indicator [visible]="true" height="50" width="50" />
+        <div class="idle-title">Running NRT…</div>
+        <div class="idle-sub">Loading data, comparing, saving diffs. This may take a minute.</div>
+      </div>
+
+      <!-- Error -->
+      <div *ngIf="error" class="error-panel card">
+        <div class="error-icon">✕</div>
+        <div class="idle-title" style="color: var(--fail-color)">Run Failed</div>
+        <div class="error-msg">{{ error }}</div>
+      </div>
+
+      <!-- Success -->
+      <div *ngIf="result" class="success-panel card">
+        <div class="result-status">
+          <span class="badge" [class.pass]="result.passed" [class.fail]="!result.passed">
+            <span class="dot"></span>
+            {{ result.passed ? 'PASS' : 'FAIL' }}
+          </span>
+        </div>
+
+        <div class="result-headline">
+          Run #{{ result.runId }} Complete
+        </div>
+        <div class="result-sub">{{ result.durationSeconds | number:'1.1-1' }}s total</div>
+
+        <div class="result-counters">
+          <div class="res-row">
+            <span>Ref Rows</span>
+            <strong>{{ result.refRowCount | number }}</strong>
+          </div>
+          <div class="res-row">
+            <span>Tgt Rows</span>
+            <strong>{{ result.tgtRowCount | number }}</strong>
+          </div>
+          <div class="res-row">
+            <span>Diffs</span>
+            <strong [class.fail-text]="(result?.diffRowCount ?? 0) > 0">{{ result?.diffRowCount | number }}</strong>
+          </div>
+          <div class="res-row">
+            <span>Only in Ref</span>
+            <strong [class.warn-text]="(result?.onlyInRefCount ?? 0) > 0">{{ result?.onlyInRefCount | number }}</strong>
+          </div>
+          <div class="res-row">
+            <span>Only in Tgt</span>
+            <strong [class.warn-text]="(result?.onlyInTgtCount ?? 0) > 0">{{ result?.onlyInTgtCount | number }}</strong>
+          </div>
+        </div>
+
+        <dx-button
+          text="View Runs"
+          type="default"
+          stylingMode="contained"
+          (onClick)="goToRuns()"
+          width="100%">
+        </dx-button>
+      </div>
+
+    </aside>
+
+  </div>
+</div>

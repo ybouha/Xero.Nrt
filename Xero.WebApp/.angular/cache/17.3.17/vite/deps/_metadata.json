@@ -1,0 +1,82 @@
+{
+  "hash": "4372375b",
+  "configHash": "7555f556",
+  "lockfileHash": "d735b412",
+  "browserHash": "fc165e52",
+  "optimized": {
+    "@angular/common": {
+      "src": "../../../../../node_modules/@angular/common/fesm2022/common.mjs",
+      "file": "@angular_common.js",
+      "fileHash": "ab6af5d0",
+      "needsInterop": false
+    },
+    "@angular/common/http": {
+      "src": "../../../../../node_modules/@angular/common/fesm2022/http.mjs",
+      "file": "@angular_common_http.js",
+      "fileHash": "ac099259",
+      "needsInterop": false
+    },
+    "@angular/core": {
+      "src": "../../../../../node_modules/@angular/core/fesm2022/core.mjs",
+      "file": "@angular_core.js",
+      "fileHash": "2186440b",
+      "needsInterop": false
+    },
+    "@angular/platform-browser": {
+      "src": "../../../../../node_modules/@angular/platform-browser/fesm2022/platform-browser.mjs",
+      "file": "@angular_platform-browser.js",
+      "fileHash": "67a3be11",
+      "needsInterop": false
+    },
+    "@angular/platform-browser/animations": {
+      "src": "../../../../../node_modules/@angular/platform-browser/fesm2022/animations.mjs",
+      "file": "@angular_platform-browser_animations.js",
+      "fileHash": "889ef416",
+      "needsInterop": false
+    },
+    "@angular/router": {
+      "src": "../../../../../node_modules/@angular/router/fesm2022/router.mjs",
+      "file": "@angular_router.js",
+      "fileHash": "1b8b1e0a",
+      "needsInterop": false
+    },
+    "devextreme-angular": {
+      "src": "../../../../../node_modules/devextreme-angular/fesm2015/devextreme-angular.js",
+      "file": "devextreme-angular.js",
+      "fileHash": "066b81bd",
+      "needsInterop": false
+    },
+    "devextreme-angular/core": {
+      "src": "../../../../../node_modules/devextreme-angular/fesm2015/devextreme-angular-core.js",
+      "file": "devextreme-angular_core.js",
+      "fileHash": "2002f936",
+      "needsInterop": false
+    },
+    "devextreme-angular/ui/nested": {
+      "src": "../../../../../node_modules/devextreme-angular/fesm2015/devextreme-angular-ui-nested.js",
+      "file": "devextreme-angular_ui_nested.js",
+      "fileHash": "63fca1a5",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-JHU3MWDH": {
+      "file": "chunk-JHU3MWDH.js"
+    },
+    "chunk-PWHX4ZN7": {
+      "file": "chunk-PWHX4ZN7.js"
+    },
+    "chunk-C7UDPXZU": {
+      "file": "chunk-C7UDPXZU.js"
+    },
+    "chunk-XZRDJRGH": {
+      "file": "chunk-XZRDJRGH.js"
+    },
+    "chunk-2RQOZOGY": {
+      "file": "chunk-2RQOZOGY.js"
+    },
+    "chunk-EUO4U4P6": {
+      "file": "chunk-EUO4U4P6.js"
+    }
+  }
+}

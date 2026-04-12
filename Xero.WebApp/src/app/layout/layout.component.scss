@@ -1,0 +1,12 @@
+.shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--content-bg);
+  padding: 28px 28px 28px 28px;
+}

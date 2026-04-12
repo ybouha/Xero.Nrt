@@ -1,0 +1,213 @@
+// ── Global tokens ─────────────────────────────────────────────────────────────
+:root {
+  --sidebar-width: 220px;
+  --sidebar-bg: #131929;
+  --sidebar-hover: rgba(255,255,255,.06);
+  --sidebar-active-bg: #1d3461;
+  --sidebar-active-accent: #4f8ef7;
+  --topbar-height: 56px;
+  --content-bg: #0f1624;
+  --card-bg: #1a2236;
+  --card-border: rgba(255,255,255,.07);
+  --text-primary: #e8eaf6;
+  --text-secondary: #8892aa;
+  --accent: #4f8ef7;
+  --pass-color: #3ecf8e;
+  --fail-color: #f66d6d;
+  --warn-color: #f5a623;
+  --font: 'Inter', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--content-bg);
+  font-family: var(--font);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+// ── DevExtreme overrides ──────────────────────────────────────────────────────
+.dx-widget { font-family: var(--font) !important; font-size: 13px !important; }
+
+.dx-datagrid {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.dx-datagrid-header-panel { background: transparent !important; }
+
+.dx-datagrid-headers { background: var(--card-bg) !important; border-bottom: 1px solid var(--card-border) !important; }
+
+.dx-datagrid-headers .dx-datagrid-table .dx-row > td {
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  letter-spacing: .5px !important;
+  text-transform: uppercase !important;
+  border: none !important;
+  padding: 12px 16px !important;
+}
+
+.dx-datagrid-rowsview .dx-row {
+  border-bottom: 1px solid var(--card-border) !important;
+}
+
+.dx-datagrid-rowsview .dx-row > td {
+  padding: 12px 16px !important;
+  border: none !important;
+  color: var(--text-primary) !important;
+  background: transparent !important;
+}
+
+.dx-datagrid-rowsview .dx-row:hover > td { background: rgba(255,255,255,.03) !important; }
+
+.dx-datagrid-rowsview .dx-selection > td { background: rgba(79,142,247,.12) !important; }
+
+.dx-checkbox-checked .dx-checkbox-icon { background: var(--accent) !important; border-color: var(--accent) !important; }
+
+.dx-pager { background: transparent !important; color: var(--text-secondary) !important; }
+
+.dx-popup-wrapper .dx-overlay-content {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,.6) !important;
+}
+
+.dx-popup-title { background: var(--card-bg) !important; border-bottom: 1px solid var(--card-border) !important; color: var(--text-primary) !important; font-weight: 600 !important; }
+
+.dx-toolbar { background: transparent !important; }
+
+.dx-button-mode-contained.dx-button-default {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+}
+
+.dx-button-mode-outlined {
+  border-radius: 8px !important;
+  border-color: var(--card-border) !important;
+  color: var(--text-primary) !important;
+}
+
+.dx-button-mode-outlined:hover { border-color: var(--accent) !important; }
+
+.dx-texteditor-input { color: var(--text-primary) !important; }
+
+.dx-texteditor.dx-editor-outlined {
+  background: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+  border-radius: 8px !important;
+}
+
+.dx-texteditor.dx-editor-outlined.dx-state-focused { border-color: var(--accent) !important; }
+
+.dx-selectbox-popup-wrapper .dx-list-item { color: var(--text-primary) !important; }
+
+.dx-list-item.dx-state-hover { background: rgba(79,142,247,.12) !important; }
+
+.dx-form-group-caption { color: var(--text-secondary) !important; font-size: 11px !important; font-weight: 600 !important; letter-spacing: .5px; text-transform: uppercase; }
+
+.dx-field-item-label-text { color: var(--text-secondary) !important; font-size: 12px !important; }
+
+.dx-loadindicator-icon .dx-loadindicator-segment { background: var(--accent) !important; }
+
+// ── Shared utilities ──────────────────────────────────────────────────────────
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+
+  &.pass  { background: rgba(62,207,142,.15); color: var(--pass-color); }
+  &.fail  { background: rgba(246,109,109,.15); color: var(--fail-color); }
+  &.warn  { background: rgba(245,166,35,.15);  color: var(--warn-color); }
+  &.diff  { background: rgba(79,142,247,.15);  color: var(--accent); }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .actions { display: flex; gap: 8px; }
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+
+  .label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 8px;
+  }
+
+  .value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  .trend-up   { color: var(--pass-color); }
+  .trend-down { color: var(--fail-color); }
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  margin-bottom: 14px;
+}

@@ -1,0 +1,128 @@
+<div class="dashboard">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p class="subtitle">NRT comparison overview</p>
+    </div>
+    <div class="actions">
+      <a routerLink="/new-run" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Run
+      </a>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-center">
+    <dx-load-indicator [visible]="true" height="40" width="40" />
+    <p>Loading dashboard…</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- Stat cards -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">Total Runs</div>
+        <div class="value">{{ stats.totalRuns }}</div>
+        <div class="sub">All time</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Pass Rate</div>
+        <div class="value" [class.trend-up]="stats.passRate >= 80" [class.trend-down]="stats.passRate < 80">
+          {{ stats.passRate }}%
+        </div>
+        <div class="sub">Completed runs</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total Diffs</div>
+        <div class="value">{{ stats.totalDiffs | number }}</div>
+        <div class="sub">Across all runs</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Last Run</div>
+        <div class="value">
+          <span *ngIf="stats.lastRunPassed === true"  class="badge pass"><span class="dot"></span>PASS</span>
+          <span *ngIf="stats.lastRunPassed === false" class="badge fail"><span class="dot"></span>FAIL</span>
+          <span *ngIf="stats.lastRunPassed === null"  class="badge warn">—</span>
+        </div>
+        <div class="sub">Most recent</div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="charts-row">
+
+      <!-- Runs per day -->
+      <div class="card chart-card">
+        <div class="section-title">Runs Per Day</div>
+        <dx-chart [dataSource]="runsPerDayData" [palette]="['#3ecf8e','#f66d6d']">
+          <dxi-series argumentField="date" valueField="passed" name="Passed" type="bar" color="#3ecf8e"></dxi-series>
+          <dxi-series argumentField="date" valueField="failed" name="Failed"  type="bar" color="#f66d6d"></dxi-series>
+          <dxo-argument-axis>
+            <dxo-label [customizeText]="formatDay"></dxo-label>
+          </dxo-argument-axis>
+          <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+          <dxo-common-series-settings argumentField="date" type="bar"></dxo-common-series-settings>
+          <dxo-tooltip [enabled]="true"></dxo-tooltip>
+        </dx-chart>
+      </div>
+
+      <!-- Pass / Fail pie -->
+      <div class="card chart-card chart-card--sm">
+        <div class="section-title">Run Status</div>
+        <dx-pie-chart [dataSource]="passFailData" [customizePoint]="passFailColor">
+          <dxi-series argumentField="status" valueField="count">
+            <dxo-label [visible]="true" [customizeText]="formatPieLabel"></dxo-label>
+          </dxi-series>
+          <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+          <dxo-tooltip [enabled]="true"></dxo-tooltip>
+        </dx-pie-chart>
+      </div>
+
+    </div>
+
+    <!-- Recent runs -->
+    <div class="card recent-card">
+      <div class="section-title">Recent Runs</div>
+      <table class="run-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Scenario</th>
+            <th>Ref → Target</th>
+            <th>Val Date</th>
+            <th>Status</th>
+            <th>Diffs</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let run of recentRuns">
+            <td class="mono">{{ run.runId }}</td>
+            <td>{{ run.scenarioName }}</td>
+            <td class="versions">
+              <span>{{ run.referenceVersion }}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <span>{{ run.targetVersion }}</span>
+            </td>
+            <td class="mono">{{ run.valuationDate }}</td>
+            <td>
+              <span *ngIf="run.passed === true"  class="badge pass"><span class="dot"></span>PASS</span>
+              <span *ngIf="run.passed === false" class="badge fail"><span class="dot"></span>FAIL</span>
+              <span *ngIf="run.passed === null"  class="badge warn">Running</span>
+            </td>
+            <td class="mono diff-count" [class.has-diff]="(run.diffRowCount ?? 0) > 0">
+              {{ run.diffRowCount ?? '—' }}
+            </td>
+            <td class="ts">{{ run.runTimestamp | date:'MMM d, HH:mm' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <a routerLink="/nrt-runs" class="view-all">View all runs →</a>
+    </div>
+
+  </ng-container>
+</div>
