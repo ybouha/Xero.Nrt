@@ -4,58 +4,36 @@
   <div class="page-header">
     <div>
       <h1>Diff Results</h1>
-      <p class="subtitle">Browse comparison outcomes across all runs</p>
+      <p class="subtitle">Browse comparison outcomes by NRT run</p>
     </div>
-    <span class="count-badge">{{ totalCount | number }} total</span>
+    <div class="header-right">
+      <span class="copy-feedback" *ngIf="copyFeedback">{{ copyFeedback }}</span>
+      <span class="count-badge">{{ totalCount | number }} total</span>
+    </div>
   </div>
 
   <!-- Filters -->
   <div class="filter-bar card">
     <dx-select-box
-      [items]="diffTypeOptions"
-      displayExpr="label"
-      valueExpr="value"
-      [value]="filter.diffType ?? null"
-      placeholder="Diff Type"
-      width="170"
-      stylingMode="outlined"
-      (onValueChanged)="onDiffTypeChange($event.value)">
+      [items]="runs" displayExpr="label" valueExpr="runId"
+      [value]="runId" [showClearButton]="true"
+      placeholder="Select an NRT Run…" width="360" stylingMode="outlined"
+      [disabled]="runsLoading" (onValueChanged)="onRunChange($event.value ?? null)">
     </dx-select-box>
+    <div class="filter-divider"></div>
+    <dx-text-box [(value)]="tradeIdInput" placeholder="Trade ID" width="130" stylingMode="outlined"></dx-text-box>
+    <dx-text-box [(value)]="bookInput"    placeholder="Book"     width="120" stylingMode="outlined"></dx-text-box>
+    <dx-text-box [(value)]="deskInput"    placeholder="Desk"     width="110" stylingMode="outlined"></dx-text-box>
+    <dx-button text="Apply" type="default" stylingMode="contained" (onClick)="applyFilters()"></dx-button>
+    <dx-button text="Clear" type="normal"  stylingMode="outlined"  (onClick)="clearFilters()"></dx-button>
+  </div>
 
-    <dx-text-box
-      [(value)]="tradeIdInput"
-      placeholder="Trade ID"
-      width="130"
-      stylingMode="outlined">
-    </dx-text-box>
-
-    <dx-text-box
-      [(value)]="bookInput"
-      placeholder="Book"
-      width="120"
-      stylingMode="outlined">
-    </dx-text-box>
-
-    <dx-text-box
-      [(value)]="deskInput"
-      placeholder="Desk"
-      width="110"
-      stylingMode="outlined">
-    </dx-text-box>
-
-    <dx-button
-      text="Apply"
-      type="default"
-      stylingMode="contained"
-      (onClick)="applyFilters()">
-    </dx-button>
-
-    <dx-button
-      text="Clear"
-      type="normal"
-      stylingMode="outlined"
-      (onClick)="clearFilters()">
-    </dx-button>
+  <!-- Empty state -->
+  <div *ngIf="!runId && !loading" class="empty-state card">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <p>Select an NRT run above to view its diff results</p>
   </div>
 
   <!-- Loading -->
@@ -63,134 +41,248 @@
     <dx-load-indicator [visible]="true" height="40" width="40" />
   </div>
 
-  <!-- Grid -->
-  <div class="card grid-wrap" *ngIf="!loading">
-    <dx-data-grid
-      [dataSource]="diffs"
-      [showBorders]="false"
-      [showColumnLines]="false"
-      [hoverStateEnabled]="true"
-      keyExpr="id"
-      (onRowClick)="openDetail($event.data)">
+  <!-- Tabs + grids -->
+  <ng-container *ngIf="runId && !loading">
 
-      <dxo-pager [showInfo]="true" [showNavigationButtons]="true"></dxo-pager>
-      <dxo-paging [pageSize]="50"></dxo-paging>
+    <!-- Tab strip -->
+    <div class="tabs-card card">
+      <dx-tabs
+        [dataSource]="tabs"
+        [(selectedIndex)]="activeTab"
+        [showNavButtons]="false">
+      </dx-tabs>
+    </div>
 
-      <dxi-column dataField="id"          caption="#"           [width]="70"  cellTemplate="idTpl"></dxi-column>
-      <dxi-column dataField="tradeId"     caption="Trade ID"    [width]="120" cellTemplate="monoTpl"></dxi-column>
-      <dxi-column dataField="book"        caption="Book"        [width]="110"></dxi-column>
-      <dxi-column dataField="desk"        caption="Desk"        [width]="100"></dxi-column>
-      <dxi-column dataField="riskFactor"  caption="Risk Factor" [width]="130"></dxi-column>
-      <dxi-column dataField="valuationDate" caption="Val Date"  [width]="100" cellTemplate="monoTpl"></dxi-column>
-      <dxi-column dataField="diffType"    caption="Type"        [width]="140" cellTemplate="typeTpl"></dxi-column>
-      <dxi-column dataField="scenarioName" caption="Scenario"   [minWidth]="120"></dxi-column>
-      <dxi-column dataField="runTimestamp" caption="Run At"     [width]="140" cellTemplate="tsTpl" sortOrder="desc"></dxi-column>
-      <dxi-column caption="Diffs" cellTemplate="diffPreviewTpl" [minWidth]="200"></dxi-column>
+    <!-- ── Tab 0: In Both (diff) ─────────────────────────────────────────────── -->
+    <div class="card grid-wrap" *ngIf="activeTab === 0">
 
-      <div *dxTemplate="let d of 'idTpl'">
-        <span class="mono-sm">{{ d.value }}</span>
+      <div *ngIf="flatDiffs.length === 0" class="tab-empty">
+        No "In Both (diff)" rows for this run.
       </div>
-      <div *dxTemplate="let d of 'monoTpl'">
-        <span class="mono-sm">{{ d.value }}</span>
-      </div>
-      <div *dxTemplate="let d of 'typeTpl'">
-        <span *ngIf="d.value === 'InBothButDiff'"   class="badge diff">Both (diff)</span>
-        <span *ngIf="d.value === 'OnlyInReference'" class="badge warn">Only Ref</span>
-        <span *ngIf="d.value === 'OnlyInTarget'"    class="badge warn">Only Tgt</span>
-      </div>
-      <div *dxTemplate="let d of 'tsTpl'">
-        <span class="ts">{{ d.value | date:'MMM d, HH:mm' }}</span>
-      </div>
-      <div *dxTemplate="let d of 'diffPreviewTpl'">
-        <div class="diff-preview">
-          <ng-container *ngFor="let df of parseDiffs(d.data.diffs).slice(0,3)">
-            <span class="diff-chip">
-              <span class="chip-field">{{ df.field }}</span>
-              <span class="chip-ref">{{ df.ref }}</span>
-              <span class="chip-arrow">→</span>
-              <span class="chip-tgt">{{ df.tgt }}</span>
-              <ng-container *ngIf="isNumeric(df.ref) && isNumeric(df.tgt)">
-                <span class="chip-delta"
-                      [class.pos]="calcDelta(df.ref, df.tgt) > 0"
-                      [class.neg]="calcDelta(df.ref, df.tgt) < 0">
-                  {{ calcDelta(df.ref, df.tgt) > 0 ? '+' : '' }}{{ calcDelta(df.ref, df.tgt) | number:'1.2-2' }}
-                </span>
-              </ng-container>
+
+      <dx-data-grid *ngIf="flatDiffs.length > 0"
+        [dataSource]="flatDiffs"
+        [columns]="columnDefs"
+        [showBorders]="false"
+        [showColumnLines]="true"
+        [showRowLines]="true"
+        [rowAlternationEnabled]="false"
+        [hoverStateEnabled]="true"
+        [columnAutoWidth]="false"
+        [allowColumnResizing]="true"
+        [wordWrapEnabled]="false"
+        [cellHintEnabled]="true"
+        keyExpr="id"
+        (onRowClick)="openDetail($event.data)"
+        (onContextMenuPreparing)="onContextMenuPreparing($event)">
+
+        <dxo-scrolling mode="standard" showScrollbar="always"></dxo-scrolling>
+        <dxo-pager [showInfo]="true" [showNavigationButtons]="true"></dxo-pager>
+        <dxo-paging [pageSize]="100"></dxo-paging>
+
+        <div *dxTemplate="let d of 'idTpl'"><span class="mono-sm">{{ d.value }}</span></div>
+        <div *dxTemplate="let d of 'monoTpl'"><span class="mono-sm">{{ d.value }}</span></div>
+        <div *dxTemplate="let d of 'typeTpl'">
+          <span *ngIf="d.value === 'InBothButDiff'"   class="badge diff">Both (diff)</span>
+          <span *ngIf="d.value === 'OnlyInReference'" class="badge warn">Only Ref</span>
+          <span *ngIf="d.value === 'OnlyInTarget'"    class="badge warn">Only Tgt</span>
+        </div>
+        <div *dxTemplate="let d of 'tsTpl'"><span class="ts">{{ d.value | date:'MMM d, HH:mm' }}</span></div>
+        <div *dxTemplate="let d of 'numTpl'">
+          <span class="num-val"   *ngIf="d.value != null">{{ d.value | number: getNumFmt(d.column?.dataField) }}</span>
+          <span class="num-empty" *ngIf="d.value == null">—</span>
+        </div>
+        <div *dxTemplate="let d of 'diffValTpl'">
+          <ng-container *ngIf="d.value != null">
+            <span class="diff-val" [class.pos]="d.value > 0" [class.neg]="d.value < 0" [class.zero]="d.value === 0">
+              {{ d.value > 0 ? '+' : '' }}{{ d.value | number: getNumFmt(d.column?.dataField) }}
             </span>
           </ng-container>
-          <span *ngIf="parseDiffs(d.data.diffs).length > 3" class="more-chip">
-            +{{ parseDiffs(d.data.diffs).length - 3 }} more
-          </span>
+          <span class="num-empty" *ngIf="d.value == null">—</span>
         </div>
+
+      </dx-data-grid>
+    </div>
+
+    <!-- ── Tab 1: Only in Reference ──────────────────────────────────────────── -->
+    <div class="card grid-wrap" *ngIf="activeTab === 1">
+
+      <div *ngIf="flatRefOrphans.length === 0" class="tab-empty">
+        No "Only in Reference" rows for this run.
       </div>
 
-    </dx-data-grid>
-  </div>
+      <dx-data-grid *ngIf="flatRefOrphans.length > 0"
+        [dataSource]="flatRefOrphans"
+        [columns]="orphanColsRef"
+        [showBorders]="false"
+        [showColumnLines]="true"
+        [showRowLines]="true"
+        [rowAlternationEnabled]="false"
+        [hoverStateEnabled]="true"
+        [columnAutoWidth]="false"
+        [allowColumnResizing]="true"
+        [wordWrapEnabled]="false"
+        [cellHintEnabled]="true"
+        keyExpr="id"
+        (onRowClick)="openDetail($event.data)"
+        (onContextMenuPreparing)="onContextMenuPreparing($event)">
 
+        <dxo-scrolling mode="standard" showScrollbar="always"></dxo-scrolling>
+        <dxo-pager [showInfo]="true" [showNavigationButtons]="true"></dxo-pager>
+        <dxo-paging [pageSize]="100"></dxo-paging>
+
+        <div *dxTemplate="let d of 'idTpl'"><span class="mono-sm">{{ d.value }}</span></div>
+        <div *dxTemplate="let d of 'monoTpl'"><span class="mono-sm">{{ d.value }}</span></div>
+        <div *dxTemplate="let d of 'tsTpl'"><span class="ts">{{ d.value | date:'MMM d, HH:mm' }}</span></div>
+        <div *dxTemplate="let d of 'numTpl'">
+          <span class="num-val"   *ngIf="d.value != null">{{ d.value | number: getNumFmt(d.column?.dataField) }}</span>
+          <span class="num-empty" *ngIf="d.value == null">—</span>
+        </div>
+
+      </dx-data-grid>
+    </div>
+
+    <!-- ── Tab 2: Only in Target ─────────────────────────────────────────────── -->
+    <div class="card grid-wrap" *ngIf="activeTab === 2">
+
+      <div *ngIf="flatTgtOrphans.length === 0" class="tab-empty">
+        No "Only in Target" rows for this run.
+      </div>
+
+      <dx-data-grid *ngIf="flatTgtOrphans.length > 0"
+        [dataSource]="flatTgtOrphans"
+        [columns]="orphanColsTgt"
+        [showBorders]="false"
+        [showColumnLines]="true"
+        [showRowLines]="true"
+        [rowAlternationEnabled]="false"
+        [hoverStateEnabled]="true"
+        [columnAutoWidth]="false"
+        [allowColumnResizing]="true"
+        [wordWrapEnabled]="false"
+        [cellHintEnabled]="true"
+        keyExpr="id"
+        (onRowClick)="openDetail($event.data)"
+        (onContextMenuPreparing)="onContextMenuPreparing($event)">
+
+        <dxo-scrolling mode="standard" showScrollbar="always"></dxo-scrolling>
+        <dxo-pager [showInfo]="true" [showNavigationButtons]="true"></dxo-pager>
+        <dxo-paging [pageSize]="100"></dxo-paging>
+
+        <div *dxTemplate="let d of 'idTpl'"><span class="mono-sm">{{ d.value }}</span></div>
+        <div *dxTemplate="let d of 'monoTpl'"><span class="mono-sm">{{ d.value }}</span></div>
+        <div *dxTemplate="let d of 'tsTpl'"><span class="ts">{{ d.value | date:'MMM d, HH:mm' }}</span></div>
+        <div *dxTemplate="let d of 'numTpl'">
+          <span class="num-val"   *ngIf="d.value != null">{{ d.value | number: getNumFmt(d.column?.dataField) }}</span>
+          <span class="num-empty" *ngIf="d.value == null">—</span>
+        </div>
+
+      </dx-data-grid>
+    </div>
+
+  </ng-container>
 </div>
 
-<!-- ── Detail Popup ───────────────────────────────────────────────────────── -->
+<!-- ── Detail Popup ───────────────────────────────────────────────────────────── -->
 <dx-popup
-  [(visible)]="detailVisible"
-  [width]="680"
-  [height]="'auto'"
-  [maxHeight]="'80vh'"
-  [showTitle]="true"
-  [title]="selectedDiff ? 'Diff #' + selectedDiff.id + ' — ' + (selectedDiff.tradeId ?? '') : 'Diff Detail'"
-  [showCloseButton]="true"
-  [dragEnabled]="true">
-
+  [(visible)]="detailVisible" [width]="680" [height]="'auto'" [maxHeight]="'80vh'"
+  [showTitle]="true" [showCloseButton]="true" [dragEnabled]="true"
+  [title]="selectedDiff ? 'Row #' + selectedDiff.id + ' — ' + (selectedDiff.tradeId ?? '') : 'Row Detail'">
   <div *dxTemplate="let data of 'content'" class="popup-content">
     <ng-container *ngIf="selectedDiff as diff">
 
-    <!-- Meta -->
-    <div class="popup-meta">
-      <div class="meta-row">
-        <div class="meta-item"><span class="meta-l">Trade ID</span><span class="meta-v mono-sm">{{ diff.tradeId }}</span></div>
-        <div class="meta-item"><span class="meta-l">Book</span><span class="meta-v">{{ diff.book }}</span></div>
-        <div class="meta-item"><span class="meta-l">Desk</span><span class="meta-v">{{ diff.desk }}</span></div>
-        <div class="meta-item"><span class="meta-l">Risk Factor</span><span class="meta-v mono-sm">{{ diff.riskFactor }}</span></div>
+      <!-- Type banner for orphans -->
+      <div class="orphan-banner ref" *ngIf="diff.diffType === 'OnlyInReference'">
+        This row exists <strong>only in the Reference</strong> dataset — no matching Target row was found.
       </div>
-      <div class="meta-row">
-        <div class="meta-item"><span class="meta-l">Scenario</span><span class="meta-v">{{ diff.scenarioName }}</span></div>
-        <div class="meta-item"><span class="meta-l">Ref Ver.</span><span class="meta-v">{{ diff.referenceVersion }}</span></div>
-        <div class="meta-item"><span class="meta-l">Tgt Ver.</span><span class="meta-v">{{ diff.targetVersion }}</span></div>
-        <div class="meta-item">
-          <span class="meta-l">Type</span>
-          <span *ngIf="diff.diffType === 'InBothButDiff'"   class="badge diff">Both (diff)</span>
-          <span *ngIf="diff.diffType === 'OnlyInReference'" class="badge warn">Only Ref</span>
-          <span *ngIf="diff.diffType === 'OnlyInTarget'"    class="badge warn">Only Tgt</span>
+      <div class="orphan-banner tgt" *ngIf="diff.diffType === 'OnlyInTarget'">
+        This row exists <strong>only in the Target</strong> dataset — no matching Reference row was found.
+      </div>
+
+      <!-- Meta -->
+      <div class="popup-meta">
+        <div class="meta-row">
+          <div class="meta-item"><span class="meta-l">Trade ID</span>   <span class="meta-v mono-sm">{{ diff.tradeId }}</span></div>
+          <div class="meta-item"><span class="meta-l">Book</span>       <span class="meta-v">{{ diff.book }}</span></div>
+          <div class="meta-item"><span class="meta-l">Desk</span>       <span class="meta-v">{{ diff.desk }}</span></div>
+          <div class="meta-item"><span class="meta-l">Risk Factor</span><span class="meta-v mono-sm">{{ diff.riskFactor }}</span></div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-item"><span class="meta-l">Scenario</span>   <span class="meta-v">{{ diff.scenarioName }}</span></div>
+          <div class="meta-item"><span class="meta-l">Ref Ver.</span>   <span class="meta-v">{{ diff.referenceVersion }}</span></div>
+          <div class="meta-item"><span class="meta-l">Tgt Ver.</span>   <span class="meta-v">{{ diff.targetVersion }}</span></div>
+          <div class="meta-item"><span class="meta-l">Val Date</span>   <span class="meta-v mono-sm">{{ diff.valuationDate }}</span></div>
         </div>
       </div>
-    </div>
 
-    <!-- Field diffs table -->
-    <div *ngIf="parsedDiffs.length > 0" class="diff-table-wrap">
-      <div class="section-title" style="margin-bottom:10px">Field Differences</div>
-      <table class="diff-table">
-        <thead>
-          <tr><th>Field</th><th>Reference</th><th>Target</th><th>Δ</th></tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let df of parsedDiffs">
-            <td class="field-name">{{ df.field }}</td>
-            <td class="ref-val">{{ df.ref }}</td>
-            <td class="tgt-val">{{ df.tgt }}</td>
-            <td class="delta">
-              <ng-container *ngIf="isNumeric(df.ref) && isNumeric(df.tgt)">
-                {{ calcDelta(df.ref, df.tgt) | number:'1.4-4' }}
-              </ng-container>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div *ngIf="parsedDiffs.length === 0 && diff.diffType !== 'InBothButDiff'" class="no-diffs">
-      This row is {{ diff.diffType === 'OnlyInReference' ? 'only in the reference' : 'only in the target' }} dataset.
-    </div>
+      <!-- Field diffs (InBothButDiff only) -->
+      <div *ngIf="parsedDiffs.length > 0" class="diff-table-wrap">
+        <div class="section-title" style="margin-bottom:10px">Field Differences</div>
+        <table class="diff-table">
+          <thead><tr><th>Field</th><th>Reference</th><th>Target</th><th>Δ</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let df of parsedDiffs">
+              <td class="field-name">{{ df.field }}</td>
+              <td class="ref-val">{{ df.ref }}</td>
+              <td class="tgt-val">{{ df.tgt }}</td>
+              <td class="delta">
+                <ng-container *ngIf="isNumeric(df.ref) && isNumeric(df.tgt)">
+                  {{ calcDelta(df.ref, df.tgt) | number:'1.4-4' }}
+                </ng-container>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
     </ng-container>
   </div>
+</dx-popup>
 
+<!-- ── Filter-by-list Popup ──────────────────────────────────────────────────── -->
+<dx-popup
+  [(visible)]="filterListVisible" [width]="360" [height]="'auto'" [maxHeight]="'70vh'"
+  title="Filter by list of values" [showCloseButton]="true" [dragEnabled]="true">
+  <div *dxTemplate="let data of 'content'" class="popup-content">
+    <p class="popup-hint">Select the values to <strong>keep</strong> in the grid:</p>
+    <dx-list
+      [dataSource]="filterListItems" displayExpr="label" keyExpr="value"
+      selectionMode="all" [showSelectionControls]="true"
+      [(selectedItemKeys)]="filterListSelectedKeys" [height]="280">
+    </dx-list>
+    <div class="popup-actions">
+      <dx-button text="Apply Filter" type="default" stylingMode="contained" (onClick)="applyFilterList()"></dx-button>
+      <dx-button text="Cancel"       type="normal"  stylingMode="outlined"  (onClick)="filterListVisible = false"></dx-button>
+    </div>
+  </div>
+</dx-popup>
+
+<!-- ── Decimal Places Popup ───────────────────────────────────────────────────── -->
+<dx-popup
+  [(visible)]="decimalVisible" [width]="300" [height]="200"
+  title="Set decimal places" [showCloseButton]="true" [dragEnabled]="true">
+  <div *dxTemplate="let data of 'content'" class="popup-content decimal-popup">
+    <p class="popup-hint">Number of decimal places for this column:</p>
+    <dx-number-box [(value)]="decimalInputValue" [min]="0" [max]="10"
+      [showSpinButtons]="true" stylingMode="outlined" width="100%">
+    </dx-number-box>
+    <div class="popup-actions">
+      <dx-button text="Apply"  type="default" stylingMode="contained" (onClick)="applyDecimalPlaces()"></dx-button>
+      <dx-button text="Cancel" type="normal"  stylingMode="outlined"  (onClick)="decimalVisible = false"></dx-button>
+    </div>
+  </div>
+</dx-popup>
+
+<!-- ── API Query Popup ────────────────────────────────────────────────────────── -->
+<dx-popup
+  [(visible)]="apiQueryVisible" [width]="580" [height]="'auto'" [maxHeight]="'70vh'"
+  title="REST API Query (JSON)" [showCloseButton]="true" [dragEnabled]="true">
+  <div *dxTemplate="let data of 'content'" class="popup-content">
+    <p class="popup-hint">HTTP request used to load the current dataset:</p>
+    <pre class="api-query-code">{{ apiQueryText }}</pre>
+    <div class="popup-actions">
+      <dx-button text="Copy to Clipboard" type="default" stylingMode="contained" (onClick)="copyApiQuery()"></dx-button>
+      <dx-button text="Close"             type="normal"  stylingMode="outlined"  (onClick)="apiQueryVisible = false"></dx-button>
+    </div>
+  </div>
 </dx-popup>

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   DxDataGridModule,
   DxPopupModule,
@@ -57,7 +57,7 @@ export class NrtRunsComponent implements OnInit {
   // Right-panel stats
   summaryStats = { totalRuns: 0, passRate: 0, totalDiffs: 0, onlyRef: 0, onlyTgt: 0 };
 
-  constructor(private viewer: ResultViewerService) {}
+  constructor(private viewer: ResultViewerService, private router: Router) {}
 
   ngOnInit(): void {
     this.loadRuns();
@@ -97,6 +97,11 @@ export class NrtRunsComponent implements OnInit {
   onStatusFilterChange(val: string | null): void {
     this.statusFilter = val;
     this.loadRuns();
+  }
+
+  viewResults(runId: number, event: MouseEvent): void {
+    event.stopPropagation();
+    this.router.navigate(['/diff-results'], { queryParams: { runId } });
   }
 
   onRowClick(e: { data: NrtRunSummary }): void {

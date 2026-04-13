@@ -6,12 +6,12 @@ import { NrtRunRequest, NrtRunResponse, NrtRunSummary } from '../models/nrt.mode
 
 @Injectable({ providedIn: 'root' })
 export class NrtApiService {
-  private readonly base = environment.nrtApiBaseUrl;
+  private readonly base = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
 
   executeRun(request: NrtRunRequest): Observable<NrtRunResponse> {
-    return this.http.post<NrtRunResponse>(`${this.base}/runs`, request);
+    return this.http.post<NrtRunResponse>(`${this.base}/nrt/runs`, request);
   }
 
   getRuns(page = 1, pageSize = 20): Observable<NrtRunSummary[]> {

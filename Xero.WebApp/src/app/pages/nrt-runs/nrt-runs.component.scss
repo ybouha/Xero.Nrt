@@ -211,3 +211,24 @@
 }
 .pos-delta { color: var(--pass-color); }
 .neg-delta { color: var(--fail-color); }
+
+.btn-view-results {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-color, #4f8ef7);
+  background: rgba(79,142,247,.1);
+  border: 1px solid rgba(79,142,247,.25);
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s;
+  &:hover {
+    background: rgba(79,142,247,.2);
+    border-color: rgba(79,142,247,.45);
+  }
+}
+

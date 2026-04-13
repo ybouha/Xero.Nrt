@@ -6,7 +6,7 @@ import { DiffFilter, DiffResultDto, NrtRunSummary, PagedResult } from '../models
 
 @Injectable({ providedIn: 'root' })
 export class ResultViewerService {
-  private readonly base = environment.viewerApiBaseUrl;
+  private readonly base = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
 

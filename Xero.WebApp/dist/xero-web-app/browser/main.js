@@ -1,10 +1,4 @@
 import {
-  RouterLink,
-  RouterLinkActive,
-  RouterOutlet,
-  provideRouter
-} from "./chunk-K64HRWYL.js";
-import {
   ANIMATION_MODULE_TYPE,
   BrowserModule,
   ChangeDetectionScheduler,
@@ -16,6 +10,9 @@ import {
   NgModule,
   NgZone,
   RendererFactory2,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
   RuntimeError,
   ViewEncapsulation$1,
   __objRest,
@@ -24,6 +21,7 @@ import {
   inject,
   performanceMarkFeature,
   provideHttpClient,
+  provideRouter,
   provideZoneChangeDetection,
   setClassMetadata,
   ɵsetClassDebugInfo,
@@ -45,7 +43,7 @@ import {
   ɵɵtemplate,
   ɵɵtext,
   ɵɵtextInterpolate
-} from "./chunk-QNHS4Y2U.js";
+} from "./chunk-MKDRXMS5.js";
 
 // node_modules/@angular/animations/fesm2022/animations.mjs
 var AnimationMetadataType;
@@ -4737,19 +4735,19 @@ var routes = [
     children: [
       {
         path: "dashboard",
-        loadComponent: () => import("./chunk-IXCP2V6Q.js").then((m) => m.DashboardComponent)
+        loadComponent: () => import("./chunk-UM2GMIS2.js").then((m) => m.DashboardComponent)
       },
       {
         path: "nrt-runs",
-        loadComponent: () => import("./chunk-6XIDA3U6.js").then((m) => m.NrtRunsComponent)
+        loadComponent: () => import("./chunk-XNQIUOJO.js").then((m) => m.NrtRunsComponent)
       },
       {
         path: "diff-results",
-        loadComponent: () => import("./chunk-IED4A32J.js").then((m) => m.DiffResultsComponent)
+        loadComponent: () => import("./chunk-3BNREZBY.js").then((m) => m.DiffResultsComponent)
       },
       {
         path: "new-run",
-        loadComponent: () => import("./chunk-M6U5UIJL.js").then((m) => m.NewRunComponent)
+        loadComponent: () => import("./chunk-44KVI262.js").then((m) => m.NewRunComponent)
       },
       { path: "**", redirectTo: "dashboard" }
     ]

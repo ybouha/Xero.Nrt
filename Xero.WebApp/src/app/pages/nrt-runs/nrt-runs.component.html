@@ -113,6 +113,16 @@
           <span class="mono-sm ts">{{ d.value | date:'MMM d, HH:mm' }}</span>
         </div>
 
+        <!-- View Results -->
+        <dxi-column caption="" [width]="130" [allowSorting]="false" cellTemplate="viewResultsTpl">
+        </dxi-column>
+        <div *dxTemplate="let d of 'viewResultsTpl'">
+          <button class="btn-view-results" (click)="viewResults(d.data.runId, $event)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            View Results
+          </button>
+        </div>
+
       </dx-data-grid>
     </div>
 
