@@ -1,6 +1,8 @@
 ﻿using System.Data;
+using System.Diagnostics;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using Xero.SmartComparer;
 
 namespace Xero.ResultSaver;
@@ -28,15 +30,26 @@ namespace Xero.ResultSaver;
 /// </remarks>
 public sealed class SqlAuditSaver<T> : IResultSaver<T> where T : class, new()
 {
-    private readonly string _connectionString;
+    private readonly string                       _connectionString;
+    private readonly ILogger<SqlAuditSaver<T>>?   _logger;
 
-    public SqlAuditSaver(string connectionString) => _connectionString = connectionString;
+    public SqlAuditSaver(string connectionString, ILogger<SqlAuditSaver<T>>? logger = null)
+    {
+        _connectionString = connectionString;
+        _logger           = logger;
+    }
 
     public async Task SaveAsync(CompareResult<T> result, SaveOptions options, CancellationToken ct = default)
     {
         bool passed = result.Count == 0
             && (result.OnlyInReference?.Count ?? 0) == 0
             && (result.OnlyInTarget?.Count ?? 0) == 0;
+
+        _logger?.LogInformation(
+            "Logging run to NrtAuditLog — Scenario={Scenario} Passed={Passed}",
+            options.ScenarioName, passed);
+
+        var sw = Stopwatch.StartNew();
 
         using var conn = new SqlConnection(_connectionString);
 
@@ -64,7 +77,10 @@ public sealed class SqlAuditSaver<T> : IResultSaver<T> where T : class, new()
             },
             cancellationToken: ct));
 
-        Console.WriteLine($"[SqlAuditSaver] Run logged → NrtAuditLog  Passed={passed}");
+        sw.Stop();
+        _logger?.LogInformation(
+            "Run logged to NrtAuditLog in {Elapsed:F2}s — Passed={Passed}",
+            sw.Elapsed.TotalSeconds, passed);
     }
 
     private static async Task EnsureTableExistsAsync(IDbConnection conn, CancellationToken ct)

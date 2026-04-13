@@ -52,7 +52,7 @@ ORDER BY trade_id`;
     scenarioName:     'VaR NRT',
     referenceVersion: 'prod-2025-01',
     targetVersion:    'uat-2025-02',
-    valuationDate:    new Date().toISOString().substring(0, 10),
+    valuationDate:    '2025-01-31',
     reference: {
       provider:         'PostgreSql',
       connectionString: this.defaultConnStr,

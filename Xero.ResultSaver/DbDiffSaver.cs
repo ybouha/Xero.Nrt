@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Dapper;
+using Microsoft.Extensions.Logging;
 using Xero.DataAcquisition;
 using Xero.SmartComparer;
 
@@ -43,6 +45,7 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
     private readonly string                                   _tableName;
     private readonly string[]                                 _keyProperties;
     private readonly Dictionary<string, Func<T, object?>>    _keyGetters;
+    private readonly ILogger<DbDiffSaver<T>>?                 _logger;
 
     private static readonly JsonSerializerOptions _jsonOpts = new()
     {
@@ -56,16 +59,19 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
     /// Names of the properties that form the composite key.
     /// Each becomes its own column so they are individually queryable and indexable.
     /// </param>
+    /// <param name="logger">Optional structured logger.</param>
     public DbDiffSaver(
-        IDbConnectionFactory factory,
-        string               connectionString,
-        string               tableName,
-        string[]             keyProperties)
+        IDbConnectionFactory     factory,
+        string                   connectionString,
+        string                   tableName,
+        string[]                 keyProperties,
+        ILogger<DbDiffSaver<T>>? logger = null)
     {
         _factory          = factory;
         _connectionString = connectionString;
         _tableName        = tableName;
         _keyProperties    = keyProperties;
+        _logger           = logger;
 
         // Pre-compile property getters for key columns — used when persisting
         // OnlyInReference / OnlyInTarget rows that don't go through the diff dict path.
@@ -79,15 +85,21 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
         SaveOptions      options,
         CancellationToken ct = default)
     {
-        int diffCount = result.Count;
+        int diffCount    = result.Count;
         int onlyRefCount = result.OnlyInReference?.Count ?? 0;
         int onlyTgtCount = result.OnlyInTarget?.Count    ?? 0;
 
         if (diffCount == 0 && onlyRefCount == 0 && onlyTgtCount == 0)
         {
-            Console.WriteLine("[DbDiffSaver] Nothing to write — all sides matched perfectly.");
+            _logger?.LogInformation("Nothing to write — all sides matched perfectly");
             return;
         }
+
+        _logger?.LogInformation(
+            "Saving to {Table} ({Dialect}) — InBothButDiff: {Diff:N0}, OnlyInRef: {OnlyRef:N0}, OnlyInTgt: {OnlyTgt:N0}",
+            _tableName, _factory.Dialect, diffCount, onlyRefCount, onlyTgtCount);
+
+        var sw = Stopwatch.StartNew();
 
         using var conn = _factory.CreateConnection(_connectionString);
         await EnsureTableAsync(conn, ct);
@@ -131,9 +143,10 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
             }
         }
 
-        Console.WriteLine(
-            $"[DbDiffSaver] {written:N0} rows → {_tableName} ({_factory.Dialect})  " +
-            $"[InBothButDiff={diffCount}  OnlyInRef={onlyRefCount}  OnlyInTgt={onlyTgtCount}]");
+        sw.Stop();
+        _logger?.LogInformation(
+            "Saved {Written:N0} rows to {Table} in {Elapsed:F2}s",
+            written, _tableName, sw.Elapsed.TotalSeconds);
     }
 
     // ── DDL ───────────────────────────────────────────────────────────────────

@@ -22,11 +22,16 @@ public sealed class NrtService : INrtService
 
     private readonly NrtRunRepository    _runRepository;
     private readonly ILogger<NrtService> _logger;
+    private readonly ILoggerFactory      _loggerFactory;
 
-    public NrtService(NrtRunRepository runRepository, ILogger<NrtService> logger)
+    public NrtService(
+        NrtRunRepository    runRepository,
+        ILogger<NrtService> logger,
+        ILoggerFactory      loggerFactory)
     {
         _runRepository = runRepository;
         _logger        = logger;
+        _loggerFactory = loggerFactory;
     }
 
     public async Task<NrtRunResponse> ExecuteRunAsync(NrtRunRequest request, CancellationToken ct)
@@ -34,7 +39,7 @@ public sealed class NrtService : INrtService
         var sw           = Stopwatch.StartNew();
         var runTimestamp = DateTimeOffset.UtcNow;
 
-        _logger.LogInformation("NRT run starting — scenario={Scenario} valDate={ValDate}",
+        _logger.LogInformation("NRT run starting ï¿½ scenario={Scenario} valDate={ValDate}",
             request.ScenarioName, request.ValuationDate);
 
         // ?? 1. Insert audit header ????????????????????????????????????????????
@@ -60,7 +65,9 @@ public sealed class NrtService : INrtService
                 ScenarioName              = request.ScenarioName,
             };
 
-            var loader = new DbDataLoader<VarTradeRow>(refFactory, tgtFactory);
+            var loader = new DbDataLoader<VarTradeRow>(
+                refFactory, tgtFactory,
+                _loggerFactory.CreateLogger<DbDataLoader<VarTradeRow>>());
             var (reference, target) = await loader.LoadAsync(loadOptions, ct);
 
             // ?? 3. Compare ????????????????????????????????????????????????????
@@ -77,7 +84,9 @@ public sealed class NrtService : INrtService
                     .ToList()
                 : [];
 
-            var comparer = new ListComparer<VarTradeRow>(keyProps, ignoreProps);
+            var comparer = new ListComparer<VarTradeRow>(
+                keyProps, ignoreProps,
+                _loggerFactory.CreateLogger<ListComparer<VarTradeRow>>());
             var result   = await comparer.CompareList(reference.ToList(), target.ToList());
 
             // ?? 4. Save diff rows ?????????????????????????????????????????????
@@ -98,7 +107,8 @@ public sealed class NrtService : INrtService
                     diffFactory,
                     request.Output.DiffDb.ConnectionString,
                     request.Output.DiffDb.TableName,
-                    keyProps.ToArray());
+                    keyProps.ToArray(),
+                    _loggerFactory.CreateLogger<DbDiffSaver<VarTradeRow>>());
 
                 await saver.SaveAsync(result, saveOptions, ct);
             }
@@ -117,7 +127,7 @@ public sealed class NrtService : INrtService
 
             sw.Stop();
             _logger.LogInformation(
-                "NRT run {RunId} finished in {Duration:F1}s — {Status}  " +
+                "NRT run {RunId} finished in {Duration:F1}s ï¿½ {Status}  " +
                 "[Diff={Diff}  OnlyRef={OnlyRef}  OnlyTgt={OnlyTgt}]",
                 runId, sw.Elapsed.TotalSeconds, passed ? "PASS" : "FAIL",
                 diffCount, onlyRefCount, onlyTgtCount);
