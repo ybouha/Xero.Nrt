@@ -1,25 +1,22 @@
 using System.Diagnostics;
-using Xero.DataAcquisition;
+using System.Text.Json;
+using Xero.SmartComparer;
 using Xero.WebApi.Data;
 using Xero.WebApi.Models;
-using Xero.ResultSaver;
-using Xero.SmartComparer;
-using DbProvider = Xero.WebApi.Models.DbProvider;
 
 namespace Xero.WebApi.Services;
 
 /// <summary>
-/// Orchestrates the four-step NRT pipeline:
-///   1. Load reference and target data in parallel
-///   2. Compare using SmartComparer
-///   3. Save diff rows to the configured database table
-///   4. Update the nrt_runs audit header with result counts
+/// Orchestrates the NRT pipeline without knowing the row type at compile time.
+///
+/// Flow:
+///   1. Build a runtime CLR type from <see cref="NrtRunRequest.ColumnSchema"/> using IL Emit.
+///   2. Instantiate <see cref="NrtPipelineRunner{T}"/> via reflection (MakeGenericType).
+///   3. Delegate Load → Compare → Save to the generic runner.
+///   4. Persist the audit header before and after the run.
 /// </summary>
 public sealed class NrtService : INrtService
 {
-    private static readonly string[] DefaultKeyProperties =
-        ["TradeId", "Book", "Desk", "RiskFactor", "ValuationDate"];
-
     private readonly NrtRunRepository    _runRepository;
     private readonly ILogger<NrtService> _logger;
     private readonly ILoggerFactory      _loggerFactory;
@@ -39,95 +36,52 @@ public sealed class NrtService : INrtService
         var sw           = Stopwatch.StartNew();
         var runTimestamp = DateTimeOffset.UtcNow;
 
-        _logger.LogInformation("NRT run starting � scenario={Scenario} valDate={ValDate}",
-            request.ScenarioName, request.ValuationDate);
+        _logger.LogInformation(
+            "NRT run starting — scenario={Scenario} valDate={ValDate} schema={ColCount} columns",
+            request.ScenarioName, request.ValuationDate, request.ColumnSchema.Length);
 
-        // ?? 1. Insert audit header ????????????????????????????????????????????
+        // ── 1. Insert audit header ────────────────────────────────────────────
         var runId = await _runRepository.CreateRunAsync(request, runTimestamp, ct);
         _logger.LogInformation("Run header created: RunId={RunId}", runId);
 
         try
         {
-            // ?? 2. Load data ??????????????????????????????????????????????????
-            var refFactory = ResolveFactory(request.Reference.Provider);
-            var tgtFactory = ResolveFactory(request.Target.Provider);
-
-            var loadOptions = new DataLoadOptions
+            // ── 2. Resolve row type from schema ───────────────────────────────
+            Type rowType;
+            if (request.ColumnSchema.Length > 0)
             {
-                ReferenceConnectionString = request.Reference.ConnectionString,
-                TargetConnectionString    = request.Target.ConnectionString,
-                ReferenceSql              = request.Reference.Query,
-                TargetSql                 = request.Target.Query,
-                ReferenceParams           = new { ValuationDate = request.ValuationDate },
-                TargetParams              = new { ValuationDate = request.ValuationDate },
-                CommandTimeoutSeconds     = Math.Max(
-                    request.Reference.TimeoutSeconds, request.Target.TimeoutSeconds),
-                ScenarioName              = request.ScenarioName,
-            };
-
-            var loader = new DbDataLoader<VarTradeRow>(
-                refFactory, tgtFactory,
-                _loggerFactory.CreateLogger<DbDataLoader<VarTradeRow>>());
-            var (reference, target) = await loader.LoadAsync(loadOptions, ct);
-
-            // ?? 3. Compare ????????????????????????????????????????????????????
-            var keyProps = request.Compare.KeyProperties.Length > 0
-                ? request.Compare.KeyProperties.ToList()
-                : DefaultKeyProperties.ToList();
-
-            // ignoreProperties = all non-key props NOT in CompareProperties
-            var ignoreProps = request.Compare.CompareProperties.Length > 0
-                ? typeof(VarTradeRow).GetProperties()
-                    .Select(p => p.Name)
-                    .Where(n => !keyProps.Contains(n)
-                             && !request.Compare.CompareProperties.Contains(n))
-                    .ToList()
-                : [];
-
-            var comparer = new ListComparer<VarTradeRow>(
-                keyProps, ignoreProps,
-                _loggerFactory.CreateLogger<ListComparer<VarTradeRow>>());
-            var result   = await comparer.CompareList(reference.ToList(), target.ToList());
-
-            // ?? 4. Save diff rows ?????????????????????????????????????????????
-            var saveOptions = new SaveOptions
+                rowType = DynamicTypeBuilder.Build(request.ColumnSchema);
+                _logger.LogInformation(
+                    "Dynamic row type '{TypeName}' resolved from schema",
+                    rowType.Name);
+            }
+            else
             {
-                OutputPath       = Path.GetTempPath(),
-                ScenarioName     = request.ScenarioName,
-                RunTimestamp     = runTimestamp,
-                ReferenceVersion = request.ReferenceVersion,
-                TargetVersion    = request.TargetVersion,
-            };
-
-            if (request.Output.DiffDb.Enabled
-                && !string.IsNullOrWhiteSpace(request.Output.DiffDb.ConnectionString))
-            {
-                var diffFactory = ResolveFactory(request.Output.DiffDb.Provider);
-                var saver = new DbDiffSaver<VarTradeRow>(
-                    diffFactory,
-                    request.Output.DiffDb.ConnectionString,
-                    request.Output.DiffDb.TableName,
-                    keyProps.ToArray(),
-                    _loggerFactory.CreateLogger<DbDiffSaver<VarTradeRow>>());
-
-                await saver.SaveAsync(result, saveOptions, ct);
+                throw new InvalidOperationException(
+                    "ColumnSchema must contain at least one column. " +
+                    "Define the data schema in the run request.");
             }
 
-            // ?? 5. Update audit header ????????????????????????????????????????
-            int diffCount    = result.Count;
-            int onlyRefCount = result.OnlyInReference?.Count ?? 0;
-            int onlyTgtCount = result.OnlyInTarget?.Count    ?? 0;
-            bool passed      = diffCount == 0 && onlyRefCount == 0 && onlyTgtCount == 0;
+            // ── 3. Instantiate NrtPipelineRunner<T> via reflection ────────────
+            var runnerType = typeof(NrtPipelineRunner<>).MakeGenericType(rowType);
+            var runner     = (INrtPipelineRunner)Activator.CreateInstance(runnerType)!;
+
+            // ── 4. Execute the pipeline ───────────────────────────────────────
+            var (refCount, tgtCount, diffCount, onlyRefCount, onlyTgtCount) =
+                await runner.RunAsync(request, runId, runTimestamp, _loggerFactory, ct);
+
+            // ── 5. Update audit header ────────────────────────────────────────
+            bool passed = diffCount == 0 && onlyRefCount == 0 && onlyTgtCount == 0;
 
             await _runRepository.UpdateRunAsync(
                 runId,
-                reference.Count, target.Count,
+                refCount, tgtCount,
                 diffCount, onlyRefCount, onlyTgtCount,
                 passed, ct);
 
             sw.Stop();
             _logger.LogInformation(
-                "NRT run {RunId} finished in {Duration:F1}s � {Status}  " +
+                "NRT run {RunId} finished in {Duration:F1}s — {Status}  " +
                 "[Diff={Diff}  OnlyRef={OnlyRef}  OnlyTgt={OnlyTgt}]",
                 runId, sw.Elapsed.TotalSeconds, passed ? "PASS" : "FAIL",
                 diffCount, onlyRefCount, onlyTgtCount);
@@ -140,8 +94,8 @@ public sealed class NrtService : INrtService
                 TargetVersion    = request.TargetVersion,
                 ValuationDate    = request.ValuationDate,
                 RunTimestamp     = runTimestamp,
-                RefRowCount      = reference.Count,
-                TgtRowCount      = target.Count,
+                RefRowCount      = refCount,
+                TgtRowCount      = tgtCount,
                 DiffRowCount     = diffCount,
                 OnlyInRefCount   = onlyRefCount,
                 OnlyInTgtCount   = onlyTgtCount,
@@ -155,10 +109,4 @@ public sealed class NrtService : INrtService
             throw;
         }
     }
-
-    private static IDbConnectionFactory ResolveFactory(DbProvider provider) => provider switch
-    {
-        DbProvider.PostgreSql => PostgreSqlConnectionFactory.Instance,
-        _                     => SqlServerConnectionFactory.Instance,
-    };
 }

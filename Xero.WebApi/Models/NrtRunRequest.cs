@@ -1,3 +1,5 @@
+using Xero.SmartComparer;
+
 namespace Xero.WebApi.Models;
 
 /// <summary>Database engine choices, matching Xero.DataAcquisition factories.</summary>
@@ -19,6 +21,13 @@ public sealed class NrtRunRequest
     public DbSettingsDto    Target    { get; set; } = new();
     public CompareSettingsDto Compare { get; set; } = new();
     public OutputSettingsDto  Output  { get; set; } = new();
+
+    /// <summary>
+    /// Defines the columns of each data row. The runtime CLR type is generated
+    /// from this schema using IL Emit. If empty, the tool expects the caller to
+    /// provide a pre-existing type (backwards-compatible path).
+    /// </summary>
+    public ColumnDef[] ColumnSchema { get; set; } = [];
 }
 
 public sealed class DbSettingsDto

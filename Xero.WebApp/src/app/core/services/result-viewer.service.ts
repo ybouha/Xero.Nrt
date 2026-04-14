@@ -24,9 +24,6 @@ export class ResultViewerService {
       .set('page', filter.page)
       .set('pageSize', filter.pageSize);
     if (filter.diffType) params = params.set('diffType', filter.diffType);
-    if (filter.tradeId)  params = params.set('tradeId',  filter.tradeId);
-    if (filter.book)     params = params.set('book',     filter.book);
-    if (filter.desk)     params = params.set('desk',     filter.desk);
     return this.http.get<PagedResult<DiffResultDto>>(`${this.base}/runs/${runId}/diffs`, { params });
   }
 
@@ -35,9 +32,6 @@ export class ResultViewerService {
       .set('page', filter.page)
       .set('pageSize', filter.pageSize);
     if (filter.diffType) params = params.set('diffType', filter.diffType);
-    if (filter.tradeId)  params = params.set('tradeId',  filter.tradeId);
-    if (filter.book)     params = params.set('book',     filter.book);
-    if (filter.desk)     params = params.set('desk',     filter.desk);
     return this.http.get<PagedResult<DiffResultDto>>(`${this.base}/diffs`, { params });
   }
 

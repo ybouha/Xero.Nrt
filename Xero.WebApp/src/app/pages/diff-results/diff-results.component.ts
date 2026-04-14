@@ -14,7 +14,13 @@ import {
 } from 'devextreme-angular';
 import { forkJoin } from 'rxjs';
 import { ResultViewerService } from '../../core/services/result-viewer.service';
-import { DiffResultDto, DiffFilter, NrtRunSummary } from '../../core/models/nrt.models';
+import {
+  ColumnDef,
+  DiffResultDto,
+  DiffFilter,
+  NrtRunSummary,
+  parseColumnSchema,
+} from '../../core/models/nrt.models';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -40,9 +46,6 @@ export class DiffResultsComponent implements OnInit {
 
   runId: number | null = null;
   filter: DiffFilter = { page: 1, pageSize: 1000 };
-  tradeIdInput = '';
-  bookInput    = '';
-  deskInput    = '';
 
   // ── Tab state ────────────────────────────────────────────────────────────────
   activeTab = 0;
@@ -66,7 +69,8 @@ export class DiffResultsComponent implements OnInit {
   // ── Detail popup ─────────────────────────────────────────────────────────────
   detailVisible  = false;
   selectedDiff: DiffResultDto | null = null;
-  parsedDiffs: { field: string; ref: unknown; tgt: unknown }[] = [];
+  parsedDiffs:     { field: string; ref: unknown; tgt: unknown }[] = [];
+  parsedKeyValues: { field: string; value: unknown }[] = [];
 
   // ── Context menu state ───────────────────────────────────────────────────────
   private activeGrid: any = null;   // grid instance from e.component
@@ -132,16 +136,10 @@ export class DiffResultsComponent implements OnInit {
   loadDiffs(): void {
     this.loading = true;
 
-    // Build a base filter (common text filters, no diffType).
-    // Then issue 3 parallel requests — one per type — so each has its own
-    // server-side pagination and we never miss rows because another type
-    // consumed all slots in a single combined page.
+    // Build a base filter (no diffType). Issue 3 parallel requests — one per type.
     const base: DiffFilter = {
       page:     1,
       pageSize: this.filter.pageSize,
-      tradeId:  this.filter.tradeId,
-      book:     this.filter.book,
-      desk:     this.filter.desk,
     };
 
     const call = (diffType: string) => {
@@ -161,11 +159,11 @@ export class DiffResultsComponent implements OnInit {
 
         this.buildDiffGrid(inBoth.items);
 
-        const refResult = this.buildOrphanData(onlyRef.items, 'Reference Values');
+        const refResult = this.buildOrphanData(onlyRef.items);
         this.flatRefOrphans = refResult.flat;
         this.orphanColsRef  = refResult.cols;
 
-        const tgtResult = this.buildOrphanData(onlyTgt.items, 'Target Values');
+        const tgtResult = this.buildOrphanData(onlyTgt.items);
         this.flatTgtOrphans = tgtResult.flat;
         this.orphanColsTgt  = tgtResult.cols;
 
@@ -183,12 +181,7 @@ export class DiffResultsComponent implements OnInit {
   }
 
   applyFilters(): void {
-    this.filter = {
-      ...this.filter, page: 1,
-      tradeId: this.tradeIdInput || undefined,
-      book:    this.bookInput    || undefined,
-      desk:    this.deskInput    || undefined,
-    };
+    this.filter = { ...this.filter, page: 1 };
     this.loadDiffs();
   }
 
@@ -200,9 +193,10 @@ export class DiffResultsComponent implements OnInit {
   openDetail(diff: any): void {
     // diff may be a flat row — look up the original DTO by id
     const original = this.diffs.find(d => d.id === diff.id) ?? diff as DiffResultDto;
-    this.selectedDiff  = original;
-    this.parsedDiffs   = this.parseDiffs(original.diffs);
-    this.detailVisible = true;
+    this.selectedDiff    = original;
+    this.parsedDiffs     = this.parseDiffs(original.diffs);
+    this.parsedKeyValues = this.parseCompareItems(original.compareItems);
+    this.detailVisible   = true;
   }
 
   // ── Build all grid data ───────────────────────────────────────────────────────
@@ -214,11 +208,11 @@ export class DiffResultsComponent implements OnInit {
 
     this.buildDiffGrid(inBoth);
 
-    const refResult = this.buildOrphanData(onlyRef, 'Reference Values');
+    const refResult = this.buildOrphanData(onlyRef);
     this.flatRefOrphans = refResult.flat;
     this.orphanColsRef  = refResult.cols;
 
-    const tgtResult = this.buildOrphanData(onlyTgt, 'Target Values');
+    const tgtResult = this.buildOrphanData(onlyTgt);
     this.flatTgtOrphans = tgtResult.flat;
     this.orphanColsTgt  = tgtResult.cols;
 
@@ -234,6 +228,11 @@ export class DiffResultsComponent implements OnInit {
 
     this.flatDiffs = rows.map(row => {
       const flat: any = { ...row };
+      // Extract key column values from compareItems[0]
+      const keyVals = this.extractKeyValues(row.compareItems);
+      for (const [k, v] of Object.entries(keyVals)) {
+        flat[`ci_${this.safeKey(k)}`] = v;
+      }
       for (const d of this.parseDiffs(row.diffs)) {
         const k = this.safeKey(d.field);
         flat[`${k}_ref`]  = d.ref;
@@ -261,56 +260,56 @@ export class DiffResultsComponent implements OnInit {
     ];
   }
 
-  private buildOrphanData(rows: DiffResultDto[], bandCaption: string): { flat: any[]; cols: any[] } {
-    const fieldSet = new Set<string>();
-    for (const row of rows) {
-      for (const item of this.parseCompareItems(row.compareItems)) fieldSet.add(item.field);
-    }
-    const fields = Array.from(fieldSet);
-
+  private buildOrphanData(rows: DiffResultDto[]): { flat: any[]; cols: any[] } {
     const flat = rows.map(row => {
       const f: any = { ...row };
-      for (const item of this.parseCompareItems(row.compareItems)) {
-        f[`ci_${this.safeKey(item.field)}`] = item.value;
+      const keyVals = this.extractKeyValues(row.compareItems);
+      for (const [k, v] of Object.entries(keyVals)) {
+        f[`ci_${this.safeKey(k)}`] = v;
       }
       return f;
     });
 
     const cols: any[] = [...this.buildFixedCols(false)];
-    if (fields.length > 0) {
-      cols.push({
-        caption: bandCaption,
-        isBand: true,
-        columns: fields.map(field => ({
-          dataField: `ci_${this.safeKey(field)}`,
-          caption:    field,
-          dataType:  'number',
-          width:     100,
-          cellTemplate: 'numTpl',
-        })),
-      });
-    }
-
     return { flat, cols };
   }
 
   /** Fixed identity columns shared by all three grids.
-   *  includeDiffType = true only for the InBothButDiff grid (all orphan rows have the same type). */
+   *  Columns are derived from the selected run's columnSchema.
+   *  includeDiffType = true only for the InBothButDiff grid. */
   private buildFixedCols(includeDiffType: boolean): any[] {
+    const schema = this.currentColumnSchema;
+    const schemaCols = schema.map(col => ({
+      dataField:    `ci_${this.safeKey(col.name)}`,
+      caption:      col.name,
+      width:        110,
+      cellTemplate: 'monoTpl',
+    }));
+
     const cols: any[] = [
-      { dataField: 'id',            caption: '#',          width: 60,  cellTemplate: 'idTpl'   },
-      { dataField: 'tradeId',       caption: 'Trade ID',   width: 110, cellTemplate: 'monoTpl' },
-      { dataField: 'book',          caption: 'Book',       width: 100  },
-      { dataField: 'desk',          caption: 'Desk',       width: 90   },
-      { dataField: 'riskFactor',    caption: 'Risk Factor',width: 120  },
-      { dataField: 'valuationDate', caption: 'Val Date',   width: 90,  cellTemplate: 'monoTpl' },
-      { dataField: 'scenarioName',  caption: 'Scenario',   minWidth: 110 },
-      { dataField: 'runTimestamp',  caption: 'Run At',     width: 120, cellTemplate: 'tsTpl', sortOrder: 'desc' },
+      { dataField: 'id', caption: '#', width: 60, cellTemplate: 'idTpl' },
+      ...schemaCols,
+      { dataField: 'scenarioName', caption: 'Scenario',  minWidth: 110 },
+      { dataField: 'runTimestamp', caption: 'Run At',     width: 120, cellTemplate: 'tsTpl', sortOrder: 'desc' },
     ];
+
     if (includeDiffType) {
-      cols.splice(6, 0, { dataField: 'diffType', caption: 'Type', width: 120, cellTemplate: 'typeTpl' });
+      // Insert diffType column after the schema key columns
+      cols.splice(1 + schemaCols.length, 0, {
+        dataField:    'diffType',
+        caption:      'Type',
+        width:        120,
+        cellTemplate: 'typeTpl',
+      });
     }
+
     return cols;
+  }
+
+  /** Returns the ColumnDef[] for the currently selected run. */
+  private get currentColumnSchema(): ColumnDef[] {
+    const run = this.runs.find(r => r.runId === this.runId);
+    return run ? parseColumnSchema(run) : [];
   }
 
   private refreshTabBadges(): void {
@@ -479,9 +478,7 @@ export class DiffResultsComponent implements OnInit {
     const base = environment.apiBaseUrl;
     const path = this.runId ? `${base}/runs/${this.runId}/diffs` : `${base}/diffs`;
     const qp: Record<string, any> = { page: this.filter.page, pageSize: this.filter.pageSize };
-    if (this.filter.tradeId) qp['tradeId'] = this.filter.tradeId;
-    if (this.filter.book)    qp['book']    = this.filter.book;
-    if (this.filter.desk)    qp['desk']    = this.filter.desk;
+    if (this.filter.diffType) qp['diffType'] = this.filter.diffType;
 
     const qs = Object.entries(qp).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
     this.apiQueryText   = JSON.stringify({ method: 'GET', url: `${path}?${qs}`, params: qp }, null, 2);
@@ -546,16 +543,21 @@ export class DiffResultsComponent implements OnInit {
   parseCompareItems(raw: string | null): { field: string; value: unknown }[] {
     if (!raw) return [];
     try {
-      const obj = JSON.parse(raw) as Record<string, unknown>;
-      return Object.entries(obj).map(([field, value]) => {
-        // Support nested { Ref, Tgt } structure — pick whichever side exists
-        if (value && typeof value === 'object' && ('Ref' in value || 'Tgt' in value)) {
-          const v = value as { Ref?: unknown; Tgt?: unknown };
-          return { field, value: v.Ref ?? v.Tgt ?? null };
-        }
-        return { field, value };
-      });
+      // CompareItems is stored as a JSON array: [refItem, tgtItem] or [item]
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr) || arr.length === 0) return [];
+      const item = arr[0] as Record<string, unknown>;
+      return Object.entries(item).map(([field, value]) => ({ field, value }));
     } catch { return []; }
+  }
+
+  /** Extract flat key/value pairs from compareItems JSON (first item in array). */
+  private extractKeyValues(raw: string | null): Record<string, unknown> {
+    if (!raw) return {};
+    try {
+      const arr = JSON.parse(raw) as Record<string, unknown>[];
+      return Array.isArray(arr) && arr.length > 0 ? (arr[0] ?? {}) : {};
+    } catch { return {}; }
   }
 
   isNumeric(v: unknown): boolean { return typeof v === 'number'; }
@@ -602,9 +604,6 @@ export class DiffResultsComponent implements OnInit {
   }
 
   private resetFilters(): void {
-    this.tradeIdInput = '';
-    this.bookInput    = '';
-    this.deskInput    = '';
-    this.filter       = { page: 1, pageSize: 1000 };
+    this.filter = { page: 1, pageSize: 1000 };
   }
 }

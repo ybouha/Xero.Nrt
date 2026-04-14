@@ -20,4 +20,11 @@ public sealed class SaveOptions
 
     /// <summary>Version label of the target / candidate environment (e.g. "uat-2025-01").</summary>
     public string TargetVersion { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Audit run identifier from <c>nrt_runs.run_id</c>.
+    /// When set, written to <c>NrtDiffResults.RunId</c> so diffs can be retrieved
+    /// directly by run without relying on timestamp correlation.
+    /// </summary>
+    public int? RunId { get; init; }
 }

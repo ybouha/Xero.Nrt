@@ -70,6 +70,10 @@ try
 
     var app = builder.Build();
 
+    // ── Database migrations ────────────────────────────────────────────────────
+    var repo = app.Services.GetRequiredService<NrtRunRepository>();
+    await repo.EnsureSchemaAsync();
+
     app.UseSerilogRequestLogging(opts =>
     {
         opts.MessageTemplate =

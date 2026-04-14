@@ -7,16 +7,19 @@ import {
   DxLoadIndicatorModule,
   DxTextAreaModule,
   DxTagBoxModule,
+  DxSelectBoxModule,
+  DxTextBoxModule,
 } from 'devextreme-angular';
 import { NrtApiService } from '../../core/services/nrt-api.service';
-import { NrtRunRequest, NrtRunResponse } from '../../core/models/nrt.models';
+import { ColumnDef, NrtRunRequest, NrtRunResponse } from '../../core/models/nrt.models';
 
 @Component({
   selector: 'app-new-run',
   standalone: true,
   imports: [
     CommonModule,
-    DxFormModule, DxButtonModule, DxLoadIndicatorModule, DxTextAreaModule, DxTagBoxModule,
+    DxFormModule, DxButtonModule, DxLoadIndicatorModule,
+    DxTextAreaModule, DxTagBoxModule, DxSelectBoxModule, DxTextBoxModule,
   ],
   templateUrl: './new-run.component.html',
   styleUrls: ['./new-run.component.scss'],
@@ -27,6 +30,8 @@ export class NewRunComponent {
   error: string | null = null;
 
   readonly providerOptions = ['PostgreSql', 'SqlServer'];
+
+  readonly columnTypeOptions = ['string', 'decimal', 'int', 'long', 'bool', 'double'];
 
   readonly defaultConnStr = 'Host=localhost;Port=5432;Database=Xero;Username=postgres;Password=tc0ab1y';
 
@@ -47,6 +52,21 @@ ORDER BY trade_id`;
 FROM nrt_target_data
 WHERE valuation_date::text = @ValuationDate
 ORDER BY trade_id`;
+
+  readonly defaultColumnSchema: ColumnDef[] = [
+    { name: 'TradeId',      type: 'string'  },
+    { name: 'Book',         type: 'string'  },
+    { name: 'Desk',         type: 'string'  },
+    { name: 'RiskFactor',   type: 'string'  },
+    { name: 'AssetClass',   type: 'string'  },
+    { name: 'ValuationDate',type: 'string'  },
+    { name: 'Delta',        type: 'decimal' },
+    { name: 'Gamma',        type: 'decimal' },
+    { name: 'Vega',         type: 'decimal' },
+    { name: 'Var1D99',      type: 'decimal' },
+    { name: 'SVaR1D99',     type: 'decimal' },
+    { name: 'Pnl',          type: 'decimal' },
+  ];
 
   formData: NrtRunRequest = {
     scenarioName:     'VaR NRT',
@@ -77,9 +97,37 @@ ORDER BY trade_id`;
         tableName:        'NrtDiffResults',
       },
     },
+    columnSchema: [...this.defaultColumnSchema.map(c => ({ ...c }))],
   };
 
   constructor(private nrtApi: NrtApiService, private router: Router) {}
+
+  addColumn(): void {
+    this.formData = {
+      ...this.formData,
+      columnSchema: [...this.formData.columnSchema, { name: '', type: 'string' }],
+    };
+  }
+
+  removeColumn(index: number): void {
+    const updated = [...this.formData.columnSchema];
+    updated.splice(index, 1);
+    this.formData = { ...this.formData, columnSchema: updated };
+  }
+
+  updateColumnName(index: number, name: string): void {
+    const updated = this.formData.columnSchema.map((col, i) =>
+      i === index ? { ...col, name } : col
+    );
+    this.formData = { ...this.formData, columnSchema: updated };
+  }
+
+  updateColumnType(index: number, type: string): void {
+    const updated = this.formData.columnSchema.map((col, i) =>
+      i === index ? { ...col, type } : col
+    );
+    this.formData = { ...this.formData, columnSchema: updated };
+  }
 
   submitRun(): void {
     this.submitting = true;

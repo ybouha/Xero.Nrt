@@ -16,9 +16,6 @@ public sealed class PagedResult<T>
 public sealed class DiffFilter
 {
     public string? DiffType { get; set; }
-    public string? TradeId  { get; set; }
-    public string? Book     { get; set; }
-    public string? Desk     { get; set; }
     public int     Page     { get; set; } = 1;
     public int     PageSize { get; set; } = 50;
 }

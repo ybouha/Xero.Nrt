@@ -1,4 +1,6 @@
-﻿namespace Xero.NrtRunner;
+﻿using Xero.SmartComparer;
+
+namespace Xero.NrtRunner;
 
 /// <summary>
 /// Strongly-typed settings bound from appsettings.json.
@@ -14,6 +16,12 @@ public sealed class NrtRunnerSettings
 
     public OutputSettings Output    { get; set; } = new();
     public CompareSettings Compare  { get; set; } = new();
+
+    /// <summary>
+    /// Defines the columns of each data row. Used to generate a CLR type at
+    /// runtime via IL Emit. Must contain at least one entry.
+    /// </summary>
+    public ColumnDef[] ColumnSchema { get; set; } = [];
 }
 
 public sealed class DbSettings

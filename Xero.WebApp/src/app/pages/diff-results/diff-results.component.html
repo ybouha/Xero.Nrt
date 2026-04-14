@@ -20,12 +20,6 @@
       placeholder="Select an NRT Run…" width="360" stylingMode="outlined"
       [disabled]="runsLoading" (onValueChanged)="onRunChange($event.value ?? null)">
     </dx-select-box>
-    <div class="filter-divider"></div>
-    <dx-text-box [(value)]="tradeIdInput" placeholder="Trade ID" width="130" stylingMode="outlined"></dx-text-box>
-    <dx-text-box [(value)]="bookInput"    placeholder="Book"     width="120" stylingMode="outlined"></dx-text-box>
-    <dx-text-box [(value)]="deskInput"    placeholder="Desk"     width="110" stylingMode="outlined"></dx-text-box>
-    <dx-button text="Apply" type="default" stylingMode="contained" (onClick)="applyFilters()"></dx-button>
-    <dx-button text="Clear" type="normal"  stylingMode="outlined"  (onClick)="clearFilters()"></dx-button>
   </div>
 
   <!-- Empty state -->
@@ -187,7 +181,7 @@
 <dx-popup
   [(visible)]="detailVisible" [width]="680" [height]="'auto'" [maxHeight]="'80vh'"
   [showTitle]="true" [showCloseButton]="true" [dragEnabled]="true"
-  [title]="selectedDiff ? 'Row #' + selectedDiff.id + ' — ' + (selectedDiff.tradeId ?? '') : 'Row Detail'">
+  [title]="selectedDiff ? 'Row #' + selectedDiff.id + ' — ' + selectedDiff.scenarioName : 'Row Detail'">
   <div *dxTemplate="let data of 'content'" class="popup-content">
     <ng-container *ngIf="selectedDiff as diff">
 
@@ -199,19 +193,18 @@
         This row exists <strong>only in the Target</strong> dataset — no matching Reference row was found.
       </div>
 
-      <!-- Meta -->
-      <div class="popup-meta">
+      <!-- Dynamic key values from compareItems -->
+      <div class="popup-meta" *ngIf="parsedKeyValues.length > 0">
         <div class="meta-row">
-          <div class="meta-item"><span class="meta-l">Trade ID</span>   <span class="meta-v mono-sm">{{ diff.tradeId }}</span></div>
-          <div class="meta-item"><span class="meta-l">Book</span>       <span class="meta-v">{{ diff.book }}</span></div>
-          <div class="meta-item"><span class="meta-l">Desk</span>       <span class="meta-v">{{ diff.desk }}</span></div>
-          <div class="meta-item"><span class="meta-l">Risk Factor</span><span class="meta-v mono-sm">{{ diff.riskFactor }}</span></div>
+          <div class="meta-item" *ngFor="let kv of parsedKeyValues">
+            <span class="meta-l">{{ kv.field }}</span>
+            <span class="meta-v mono-sm">{{ kv.value }}</span>
+          </div>
         </div>
         <div class="meta-row">
-          <div class="meta-item"><span class="meta-l">Scenario</span>   <span class="meta-v">{{ diff.scenarioName }}</span></div>
-          <div class="meta-item"><span class="meta-l">Ref Ver.</span>   <span class="meta-v">{{ diff.referenceVersion }}</span></div>
-          <div class="meta-item"><span class="meta-l">Tgt Ver.</span>   <span class="meta-v">{{ diff.targetVersion }}</span></div>
-          <div class="meta-item"><span class="meta-l">Val Date</span>   <span class="meta-v mono-sm">{{ diff.valuationDate }}</span></div>
+          <div class="meta-item"><span class="meta-l">Scenario</span>  <span class="meta-v">{{ diff.scenarioName }}</span></div>
+          <div class="meta-item"><span class="meta-l">Ref Ver.</span>  <span class="meta-v">{{ diff.referenceVersion }}</span></div>
+          <div class="meta-item"><span class="meta-l">Tgt Ver.</span>  <span class="meta-v">{{ diff.targetVersion }}</span></div>
         </div>
       </div>
 

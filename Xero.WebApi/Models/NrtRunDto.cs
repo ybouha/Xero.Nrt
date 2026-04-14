@@ -15,4 +15,7 @@ public sealed class NrtRunDto
     public int?           OnlyInRefCount   { get; init; }
     public int?           OnlyInTgtCount   { get; init; }
     public bool?          Passed           { get; init; }
+
+    /// <summary>Raw JSON string of the ColumnDef[] schema stored at run creation time.</summary>
+    public string?        ColumnSchemaJson { get; init; }
 }

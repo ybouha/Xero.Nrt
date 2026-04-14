@@ -51,13 +51,10 @@ public sealed class NrtRunsController : ControllerBase
 
     /// <summary>
     /// Returns paginated diff results for a specific run.
-    /// Supports filtering by DiffType, TradeId, Book, and Desk.
+    /// Supports filtering by DiffType.
     /// </summary>
     /// <param name="runId">The run identifier.</param>
     /// <param name="diffType">Optional: InBothButDiff | OnlyInReference | OnlyInTarget</param>
-    /// <param name="tradeId">Optional: filter by a specific trade ID.</param>
-    /// <param name="book">Optional: filter by book.</param>
-    /// <param name="desk">Optional: filter by desk.</param>
     /// <param name="page">1-based page number.</param>
     /// <param name="pageSize">Items per page (max 200).</param>
     [HttpGet("{runId:int}/diffs")]
@@ -66,9 +63,6 @@ public sealed class NrtRunsController : ControllerBase
     public async Task<ActionResult<PagedResult<DiffResultDto>>> GetDiffsForRun(
         int    runId,
         [FromQuery] string? diffType = null,
-        [FromQuery] string? tradeId  = null,
-        [FromQuery] string? book     = null,
-        [FromQuery] string? desk     = null,
         [FromQuery] int     page     = 1,
         [FromQuery] int     pageSize = 50,
         CancellationToken   ct       = default)
@@ -84,9 +78,6 @@ public sealed class NrtRunsController : ControllerBase
         var filter = new DiffFilter
         {
             DiffType = diffType,
-            TradeId  = tradeId,
-            Book     = book,
-            Desk     = desk,
             Page     = page,
             PageSize = pageSize,
         };

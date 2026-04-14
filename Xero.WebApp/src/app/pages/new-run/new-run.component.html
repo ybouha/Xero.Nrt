@@ -107,6 +107,51 @@
         </dx-form>
       </div>
 
+      <!-- Column Schema -->
+      <div class="card form-section">
+        <div class="section-title section-title-row">
+          <span>Column Schema</span>
+          <dx-button text="+ Add Column" type="normal" stylingMode="outlined" (onClick)="addColumn()"></dx-button>
+        </div>
+        <p class="section-hint">
+          Define the columns that the SQL queries return. These are used to generate a CLR type at runtime.
+          Column names must match the SQL aliases exactly (case-sensitive).
+        </p>
+        <div class="schema-table">
+          <div class="schema-header">
+            <span class="col-name-hdr">Column Name</span>
+            <span class="col-type-hdr">Type</span>
+            <span class="col-del-hdr"></span>
+          </div>
+          <div class="schema-row" *ngFor="let col of formData.columnSchema; let i = index">
+            <dx-text-box
+              [value]="col.name"
+              (onValueChanged)="updateColumnName(i, $event.value)"
+              stylingMode="outlined"
+              placeholder="e.g. TradeId"
+              class="col-name-input">
+            </dx-text-box>
+            <dx-select-box
+              [items]="columnTypeOptions"
+              [value]="col.type"
+              (onValueChanged)="updateColumnType(i, $event.value)"
+              stylingMode="outlined"
+              class="col-type-input">
+            </dx-select-box>
+            <dx-button
+              icon="trash"
+              type="danger"
+              stylingMode="text"
+              (onClick)="removeColumn(i)"
+              hint="Remove column">
+            </dx-button>
+          </div>
+          <div *ngIf="formData.columnSchema.length === 0" class="schema-empty">
+            No columns defined. Click "Add Column" to add the first column.
+          </div>
+        </div>
+      </div>
+
       <!-- Submit -->
       <div class="submit-row">
         <dx-button

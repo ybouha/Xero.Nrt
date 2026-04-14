@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dapper;
 using Xero.DataAcquisition;
 using Xero.WebApi.Models;
@@ -19,18 +20,36 @@ public sealed class NrtRunRepository
         _connectionString = connectionString;
     }
 
+    /// <summary>
+    /// Ensures the <c>column_schema</c> JSONB column exists on <c>nrt_runs</c>.
+    /// Safe to call on every startup — uses ADD COLUMN IF NOT EXISTS.
+    /// </summary>
+    public async Task EnsureSchemaAsync(CancellationToken ct = default)
+    {
+        using var conn = _factory.CreateConnection(_connectionString);
+        await conn.ExecuteAsync(new CommandDefinition(
+            "ALTER TABLE nrt_runs ADD COLUMN IF NOT EXISTS column_schema JSONB NULL",
+            cancellationToken: ct));
+    }
+
     /// <summary>Inserts a new run header and returns the generated run_id.</summary>
     public async Task<int> CreateRunAsync(
         NrtRunRequest   request,
         DateTimeOffset  runTimestamp,
         CancellationToken ct)
     {
+        var schemaJson = request.ColumnSchema.Length > 0
+            ? JsonSerializer.Serialize(request.ColumnSchema)
+            : null;
+
         using var conn = _factory.CreateConnection(_connectionString);
         return await conn.ExecuteScalarAsync<int>(new CommandDefinition(
             @"INSERT INTO nrt_runs
-                  (run_timestamp, scenario_name, reference_version, target_version, valuation_date)
+                  (run_timestamp, scenario_name, reference_version, target_version,
+                   valuation_date, column_schema)
               VALUES
-                  (@RunTimestamp, @ScenarioName, @ReferenceVersion, @TargetVersion, @ValuationDate::date)
+                  (@RunTimestamp, @ScenarioName, @ReferenceVersion, @TargetVersion,
+                   @ValuationDate::date, @ColumnSchema::jsonb)
               RETURNING run_id",
             new
             {
@@ -39,6 +58,7 @@ public sealed class NrtRunRepository
                 ReferenceVersion = request.ReferenceVersion,
                 TargetVersion    = request.TargetVersion,
                 ValuationDate    = request.ValuationDate,
+                ColumnSchema     = schemaJson,
             },
             cancellationToken: ct));
     }
@@ -75,18 +95,19 @@ public sealed class NrtRunRepository
     {
         using var conn = _factory.CreateConnection(_connectionString);
         var rows = await conn.QueryAsync<NrtRunSummary>(new CommandDefinition(
-            @"SELECT run_id              AS RunId,
-                     run_timestamp      AS RunTimestamp,
-                     scenario_name      AS ScenarioName,
-                     reference_version  AS ReferenceVersion,
-                     target_version     AS TargetVersion,
-                     valuation_date::text AS ValuationDate,
-                     ref_row_count      AS RefRowCount,
-                     tgt_row_count      AS TgtRowCount,
-                     diff_row_count     AS DiffRowCount,
-                     only_in_ref_count  AS OnlyInRefCount,
-                     only_in_tgt_count  AS OnlyInTgtCount,
-                     passed             AS Passed
+            @"SELECT run_id                        AS RunId,
+                     run_timestamp                AS RunTimestamp,
+                     scenario_name                AS ScenarioName,
+                     reference_version            AS ReferenceVersion,
+                     target_version               AS TargetVersion,
+                     valuation_date::text         AS ValuationDate,
+                     ref_row_count                AS RefRowCount,
+                     tgt_row_count                AS TgtRowCount,
+                     diff_row_count               AS DiffRowCount,
+                     only_in_ref_count            AS OnlyInRefCount,
+                     only_in_tgt_count            AS OnlyInTgtCount,
+                     passed                       AS Passed,
+                     column_schema::text          AS ColumnSchemaJson
               FROM   nrt_runs
               ORDER  BY run_timestamp DESC
               LIMIT  @PageSize OFFSET @Offset",
@@ -99,18 +120,19 @@ public sealed class NrtRunRepository
     {
         using var conn = _factory.CreateConnection(_connectionString);
         return await conn.QuerySingleOrDefaultAsync<NrtRunSummary>(new CommandDefinition(
-            @"SELECT run_id              AS RunId,
-                     run_timestamp      AS RunTimestamp,
-                     scenario_name      AS ScenarioName,
-                     reference_version  AS ReferenceVersion,
-                     target_version     AS TargetVersion,
-                     valuation_date::text AS ValuationDate,
-                     ref_row_count      AS RefRowCount,
-                     tgt_row_count      AS TgtRowCount,
-                     diff_row_count     AS DiffRowCount,
-                     only_in_ref_count  AS OnlyInRefCount,
-                     only_in_tgt_count  AS OnlyInTgtCount,
-                     passed             AS Passed
+            @"SELECT run_id                        AS RunId,
+                     run_timestamp                AS RunTimestamp,
+                     scenario_name                AS ScenarioName,
+                     reference_version            AS ReferenceVersion,
+                     target_version               AS TargetVersion,
+                     valuation_date::text         AS ValuationDate,
+                     ref_row_count                AS RefRowCount,
+                     tgt_row_count                AS TgtRowCount,
+                     diff_row_count               AS DiffRowCount,
+                     only_in_ref_count            AS OnlyInRefCount,
+                     only_in_tgt_count            AS OnlyInTgtCount,
+                     passed                       AS Passed,
+                     column_schema::text          AS ColumnSchemaJson
               FROM   nrt_runs
               WHERE  run_id = @RunId",
             new { RunId = runId },

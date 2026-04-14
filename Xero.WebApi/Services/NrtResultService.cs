@@ -7,25 +7,25 @@ namespace Xero.WebApi.Services;
 
 /// <summary>
 /// Queries <c>nrt_runs</c> and <c>NrtDiffResults</c> directly using Dapper.
-/// Runs are correlated with their diffs by matching <c>run_timestamp</c> /
-/// <c>scenario_name</c> because the current schema has no FK from
-/// <c>NrtDiffResults</c> to <c>nrt_runs</c>.
+/// Diffs are correlated to runs via the <c>RunId</c> FK column written by
+/// <see cref="Xero.ResultSaver.DbDiffSaver{T}"/> at save time.
 /// </summary>
 public sealed class NrtResultService : INrtResultService
 {
     private const string RunSelect = @"
-        SELECT run_id              AS RunId,
-               run_timestamp      AS RunTimestamp,
-               scenario_name      AS ScenarioName,
-               reference_version  AS ReferenceVersion,
-               target_version     AS TargetVersion,
-               valuation_date::text AS ValuationDate,
-               ref_row_count      AS RefRowCount,
-               tgt_row_count      AS TgtRowCount,
-               diff_row_count     AS DiffRowCount,
-               only_in_ref_count  AS OnlyInRefCount,
-               only_in_tgt_count  AS OnlyInTgtCount,
-               passed             AS Passed
+        SELECT run_id                    AS RunId,
+               run_timestamp            AS RunTimestamp,
+               scenario_name            AS ScenarioName,
+               reference_version        AS ReferenceVersion,
+               target_version           AS TargetVersion,
+               valuation_date::text     AS ValuationDate,
+               ref_row_count            AS RefRowCount,
+               tgt_row_count            AS TgtRowCount,
+               diff_row_count           AS DiffRowCount,
+               only_in_ref_count        AS OnlyInRefCount,
+               only_in_tgt_count        AS OnlyInTgtCount,
+               passed                   AS Passed,
+               column_schema::text      AS ColumnSchemaJson
         FROM   nrt_runs";
 
     private const string DiffSelect = @"
@@ -34,11 +34,6 @@ public sealed class NrtResultService : INrtResultService
                d.""ScenarioName""     AS ScenarioName,
                d.""ReferenceVersion"" AS ReferenceVersion,
                d.""TargetVersion""    AS TargetVersion,
-               d.""TradeId""          AS TradeId,
-               d.""Book""             AS Book,
-               d.""Desk""             AS Desk,
-               d.""RiskFactor""       AS RiskFactor,
-               d.""ValuationDate""    AS ValuationDate,
                d.""DiffType""         AS DiffType,
                d.""Diffs""::text      AS Diffs,
                d.""CompareItems""::text AS CompareItems
@@ -48,7 +43,7 @@ public sealed class NrtResultService : INrtResultService
 
     public NrtResultService(IDbConnection connection) => _connection = connection;
 
-    // ?? Runs ??????????????????????????????????????????????????????????????????
+    // ── Runs ──────────────────────────────────────────────────────────────────
 
     public async Task<PagedResult<NrtRunDto>> GetRunsAsync(
         int page, int pageSize, CancellationToken ct)
@@ -78,7 +73,7 @@ public sealed class NrtResultService : INrtResultService
                 new { RunId = runId },
                 cancellationToken: ct));
 
-    // ?? Diffs � global ????????????????????????????????????????????????????????
+    // ── Diffs – global ────────────────────────────────────────────────────────
 
     public async Task<PagedResult<DiffResultDto>> GetDiffsAsync(
         DiffFilter filter, CancellationToken ct)
@@ -87,7 +82,7 @@ public sealed class NrtResultService : INrtResultService
         return await QueryDiffsPagedAsync(whereSql, parameters, filter, ct);
     }
 
-    // ?? Diffs � scoped to a single run ????????????????????????????????????????
+    // ── Diffs – scoped to a single run ────────────────────────────────────────
 
     public async Task<PagedResult<DiffResultDto>> GetDiffsForRunAsync(
         int runId, DiffFilter filter, CancellationToken ct)
@@ -103,13 +98,8 @@ public sealed class NrtResultService : INrtResultService
                 new { Id = id },
                 cancellationToken: ct));
 
-    // ?? Helpers ???????????????????????????????????????????????????????????????
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Builds a WHERE clause + parameter bag for filtering NrtDiffResults.
-    /// When <paramref name="runId"/> is provided the query JOINs to <c>nrt_runs</c>
-    /// to resolve the run's timestamp.
-    /// </summary>
     private static (string Sql, DynamicParameters Parameters) BuildDiffWhere(
         DiffFilter filter, int? runId)
     {
@@ -118,12 +108,7 @@ public sealed class NrtResultService : INrtResultService
 
         if (runId.HasValue)
         {
-            // Correlate NrtDiffResults ? nrt_runs via timestamp + scenario name
-            conditions.Add(@"EXISTS (
-                SELECT 1 FROM nrt_runs r
-                WHERE  r.run_id        = @RunId
-                  AND  r.run_timestamp = d.""RunTimestamp""
-                  AND  r.scenario_name = d.""ScenarioName"")");
+            conditions.Add(@"d.""RunId"" = @RunId");
             p.Add("RunId", runId.Value);
         }
 
@@ -131,24 +116,6 @@ public sealed class NrtResultService : INrtResultService
         {
             conditions.Add(@"d.""DiffType"" = @DiffType");
             p.Add("DiffType", filter.DiffType);
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.TradeId))
-        {
-            conditions.Add(@"d.""TradeId"" = @TradeId");
-            p.Add("TradeId", filter.TradeId);
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Book))
-        {
-            conditions.Add(@"d.""Book"" = @Book");
-            p.Add("Book", filter.Book);
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Desk))
-        {
-            conditions.Add(@"d.""Desk"" = @Desk");
-            p.Add("Desk", filter.Desk);
         }
 
         var whereSql = conditions.Count > 0

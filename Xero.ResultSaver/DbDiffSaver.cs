@@ -167,6 +167,7 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
         sb.AppendLine("BEGIN");
         sb.AppendLine($"    CREATE TABLE {_tableName} (");
         sb.AppendLine("        Id               INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_{_tableName} PRIMARY KEY,");
+        sb.AppendLine("        RunId            INT               NULL,");
         sb.AppendLine("        RunTimestamp     DATETIMEOFFSET    NOT NULL,");
         sb.AppendLine("        ScenarioName     NVARCHAR(200)     NOT NULL,");
         sb.AppendLine("        ReferenceVersion NVARCHAR(100)     NOT NULL,");
@@ -186,6 +187,7 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
         var sb = new StringBuilder();
         sb.AppendLine($"CREATE TABLE IF NOT EXISTS \"{_tableName}\" (");
         sb.AppendLine("    \"Id\"               SERIAL          NOT NULL PRIMARY KEY,");
+        sb.AppendLine("    \"RunId\"            INTEGER         NULL,");
         sb.AppendLine("    \"RunTimestamp\"     TIMESTAMPTZ     NOT NULL,");
         sb.AppendLine("    \"ScenarioName\"     TEXT            NOT NULL,");
         sb.AppendLine("    \"ReferenceVersion\" TEXT            NOT NULL,");
@@ -209,7 +211,7 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
 
         var cols = new List<string>
         {
-            Q("RunTimestamp"), Q("ScenarioName"),
+            Q("RunId"), Q("RunTimestamp"), Q("ScenarioName"),
             Q("ReferenceVersion"), Q("TargetVersion")
         };
         cols.AddRange(_keyProperties.Distinct().Select(Q));
@@ -219,7 +221,7 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
 
         var vals = new List<string>
         {
-            "@RunTimestamp", "@ScenarioName",
+            "@RunId", "@RunTimestamp", "@ScenarioName",
             "@ReferenceVersion", "@TargetVersion"
         };
         vals.AddRange(_keyProperties.Distinct().Select(k => $"@{k}"));
@@ -239,6 +241,7 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
         SaveOptions options)
     {
         var p = new DynamicParameters();
+        p.Add("RunId",            options.RunId);
         p.Add("RunTimestamp",     options.RunTimestamp);
         p.Add("ScenarioName",     options.ScenarioName);
         p.Add("ReferenceVersion", options.ReferenceVersion);
@@ -262,6 +265,7 @@ public sealed class DbDiffSaver<T> : IResultSaver<T> where T : class, new()
         string      diffType)
     {
         var p = new DynamicParameters();
+        p.Add("RunId",            options.RunId);
         p.Add("RunTimestamp",     options.RunTimestamp);
         p.Add("ScenarioName",     options.ScenarioName);
         p.Add("ReferenceVersion", options.ReferenceVersion);
