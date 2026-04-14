@@ -21,8 +21,8 @@ public sealed class NrtRunsController : ControllerBase
     /// Returns a paginated list of all NRT runs ordered by most recent first.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<NrtRunDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<NrtRunDto>>> GetRuns(
+    [ProducesResponseType(typeof(PagedResult<RunExecutionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<RunExecutionDto>>> GetRuns(
         [FromQuery] int page     = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct     = default)
@@ -39,9 +39,9 @@ public sealed class NrtRunsController : ControllerBase
     /// Returns details for a specific NRT run.
     /// </summary>
     [HttpGet("{runId:int}")]
-    [ProducesResponseType(typeof(NrtRunDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RunExecutionDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<NrtRunDto>> GetRun(int runId, CancellationToken ct)
+    public async Task<ActionResult<RunExecutionDto>> GetRun(int runId, CancellationToken ct)
     {
         var run = await _resultService.GetRunAsync(runId, ct);
         if (run is null)

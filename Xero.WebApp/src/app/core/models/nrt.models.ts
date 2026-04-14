@@ -7,7 +7,7 @@ export interface ColumnDef {
   type: string;
 }
 
-export interface NrtRunSummary {
+export interface RunExecutionSummary {
   runId: number;
   runTimestamp: string;
   scenarioName: string;
@@ -22,13 +22,32 @@ export interface NrtRunSummary {
   passed: boolean | null;
   /** Raw JSON string of ColumnDef[] stored when the run was submitted. */
   columnSchemaJson: string | null;
+
+  // ── Status tracking ──────────────────────────────────────────────────────────
+  /** pending | running_commands | running_comparison | saving_results | completed | failed */
+  status: string;
+  errorMessage?: string;
+  refCmdStatus?: string;
+  tgtCmdStatus?: string;
+  refCmdStartedAt?: string;
+  refCmdFinishedAt?: string;
+  refCmdExitCode?: number;
+  refCmdError?: string;
+  tgtCmdStartedAt?: string;
+  tgtCmdFinishedAt?: string;
+  tgtCmdExitCode?: number;
+  tgtCmdError?: string;
+  comparisonStartedAt?: string;
+  savingStartedAt?: string;
+  finishedAt?: string;
+  definitionId?: string;
 }
 
-/** Helper: parse columnSchemaJson → ColumnDef[]. Returns [] if null/invalid.
- *  Handles both camelCase ({name, type}) and PascalCase ({Name, Type}) keys
- *  because C# serializes ColumnDef records with PascalCase by default.
- */
-export function parseColumnSchema(run: NrtRunSummary): ColumnDef[] {
+/** @deprecated Use RunExecutionSummary */
+export type NrtRunSummary = RunExecutionSummary;
+
+/** Helper: parse columnSchemaJson → ColumnDef[]. Returns [] if null/invalid. */
+export function parseColumnSchema(run: RunExecutionSummary): ColumnDef[] {
   if (!run.columnSchemaJson) return [];
   try {
     const raw = JSON.parse(run.columnSchemaJson) as any[];
@@ -40,8 +59,15 @@ export function parseColumnSchema(run: NrtRunSummary): ColumnDef[] {
   catch { return []; }
 }
 
-export interface NrtRunResponse extends NrtRunSummary {
+export interface RunExecutionResponse extends RunExecutionSummary {
   durationSeconds: number;
+  // Counts are always populated on a completed POST response
+  refRowCount: number;
+  tgtRowCount: number;
+  diffRowCount: number;
+  onlyInRefCount: number;
+  onlyInTgtCount: number;
+  passed: boolean;
 }
 
 export interface DiffResultDto {
@@ -95,23 +121,55 @@ export interface OutputSettingsDto {
   diffDb: DiffDbSettingsDto;
 }
 
-export interface NrtRunRequest {
-  scenarioName: string;
-  referenceVersion: string;
-  targetVersion: string;
-  valuationDate: string;
-  reference: DbSettingsDto;
-  target: DbSettingsDto;
-  compare: CompareSettingsDto;
-  output: OutputSettingsDto;
-  /** Column schema used to generate the runtime CLR type via IL Emit. */
-  columnSchema: ColumnDef[];
-}
-
 // ── Filter model for diff queries ─────────────────────────────────────────────
 
 export interface DiffFilter {
   diffType?: string;
   page: number;
   pageSize: number;
+}
+
+// ── Run Definition models ──────────────────────────────────────────────────────
+
+export interface NrtRunDefinitionSummary {
+  definitionId: string;
+  name: string;
+  description?: string;
+  scope?: string;
+  scenarioName: string;
+  referenceVersion: string;
+  targetVersion: string;
+  refCommandLine?: string;
+  targetCommandLine?: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+export interface NrtRunDefinition extends NrtRunDefinitionSummary {
+  reference: DbSettingsDto;
+  target: DbSettingsDto;
+  compare: CompareSettingsDto;
+  output: OutputSettingsDto;
+  columnSchema: ColumnDef[];
+}
+
+export interface SaveNrtRunDefinitionRequest {
+  name: string;
+  description?: string;
+  scope?: string;
+  scenarioName: string;
+  referenceVersion: string;
+  targetVersion: string;
+  refCommandLine?: string;
+  targetCommandLine?: string;
+  reference: DbSettingsDto;
+  target: DbSettingsDto;
+  compare: CompareSettingsDto;
+  output: OutputSettingsDto;
+  columnSchema: ColumnDef[];
+}
+
+export interface ExecuteFromDefinitionRequest {
+  valuationDate: string;
 }

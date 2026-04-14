@@ -51,7 +51,12 @@ try
         ? PostgreSqlConnectionFactory.Instance
         : SqlServerConnectionFactory.Instance;
 
-    builder.Services.AddSingleton(new NrtRunRepository(auditFactory, auditConnStr));
+    var runExecutionRepo      = new RunExecutionRepository(auditFactory, auditConnStr);
+    var runDefinitionRepo     = new NrtRunDefinitionRepository(auditFactory, auditConnStr);
+    builder.Services.AddSingleton(runExecutionRepo);
+    builder.Services.AddSingleton(runDefinitionRepo);
+    builder.Services.AddSingleton<ICommandRunner, CommandRunner>();
+    builder.Services.AddScoped<INrtRunDefinitionService, NrtRunDefinitionService>();
     builder.Services.AddScoped<INrtService, NrtService>();
 
     // ── Results DB (NrtDiffResults table) ─────────────────────────────────────
@@ -71,7 +76,7 @@ try
     var app = builder.Build();
 
     // ── Database migrations ────────────────────────────────────────────────────
-    var repo = app.Services.GetRequiredService<NrtRunRepository>();
+    var repo = app.Services.GetRequiredService<RunExecutionRepository>();
     await repo.EnsureSchemaAsync();
 
     app.UseSerilogRequestLogging(opts =>

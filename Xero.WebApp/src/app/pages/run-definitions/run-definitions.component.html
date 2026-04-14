@@ -1,0 +1,149 @@
+<div class="run-definitions-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Run Definitions</h1>
+    <div class="actions">
+      <a routerLink="/run-definitions/new" class="btn btn-primary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Definition
+      </a>
+    </div>
+  </div>
+
+  <dx-load-indicator [visible]="loading" height="36" width="36" class="grid-loader" *ngIf="loading" />
+
+  <div class="grid-wrap card" *ngIf="!loading">
+    <dx-data-grid
+      [dataSource]="definitions"
+      [showBorders]="false"
+      [showColumnLines]="false"
+      [rowAlternationEnabled]="false"
+      [hoverStateEnabled]="true"
+      keyExpr="definitionId"
+      [selectedRowKeys]="highlightedDefinitionId ? [highlightedDefinitionId] : []">
+
+      <dxo-paging [pageSize]="20"></dxo-paging>
+      <dxo-pager [showInfo]="true"></dxo-pager>
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+
+      <dxi-column dataField="name"             caption="Name"        [minWidth]="160"></dxi-column>
+      <dxi-column dataField="scope"            caption="Scope"       [width]="120"></dxi-column>
+      <dxi-column dataField="description"      caption="Description" [minWidth]="200"></dxi-column>
+      <dxi-column dataField="scenarioName"     caption="Scenario"    [width]="140"></dxi-column>
+
+      <dxi-column caption="Ref → Target" cellTemplate="versionTpl" [width]="200" [allowFiltering]="false">
+      </dxi-column>
+      <div *dxTemplate="let d of 'versionTpl'">
+        <div class="version-pair">
+          <span class="ver ref">{{ d.data.referenceVersion }}</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <span class="ver tgt">{{ d.data.targetVersion }}</span>
+        </div>
+      </div>
+
+      <dxi-column dataField="updatedAt" caption="Updated" [width]="140" cellTemplate="tsTpl" sortOrder="desc">
+      </dxi-column>
+      <div *dxTemplate="let d of 'tsTpl'">
+        <span class="mono-sm ts">{{ d.value | date:'MMM d, yyyy' }}</span>
+      </div>
+
+      <!-- Actions -->
+      <dxi-column caption="" [width]="220" [allowSorting]="false" [allowFiltering]="false" cellTemplate="actionsTpl">
+      </dxi-column>
+      <div *dxTemplate="let d of 'actionsTpl'">
+        <div class="row-actions">
+          <button class="btn-action run"  (click)="openExecute(d.data, $event)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Execute
+          </button>
+          <button class="btn-action edit" (click)="editDefinition(d.data, $event)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          <button class="btn-action delete" (click)="openDelete(d.data, $event)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Delete
+          </button>
+        </div>
+      </div>
+
+    </dx-data-grid>
+  </div>
+
+</div>
+
+<!-- ── Execute Popup ──────────────────────────────────────────────────────── -->
+<dx-popup
+  [(visible)]="executeVisible"
+  [width]="460"
+  [height]="'auto'"
+  [showTitle]="true"
+  [title]="'Execute: ' + (executeTarget?.name ?? '')"
+  [dragEnabled]="true"
+  [showCloseButton]="true">
+
+  <div *dxTemplate="let data of 'content'" class="popup-content">
+    <p class="popup-desc">
+      This will create a new run execution using the saved configuration.
+      Provide the valuation date below.
+    </p>
+
+    <div *ngIf="executeTarget?.refCommandLine || executeTarget?.targetCommandLine" class="cmd-preview">
+      <div class="cmd-title">PRE-EXECUTION COMMANDS</div>
+      <div *ngIf="executeTarget?.refCommandLine" class="cmd-row">
+        <span class="cmd-label">Ref:</span>
+        <code class="cmd-code">{{ executeTarget?.refCommandLine }}</code>
+      </div>
+      <div *ngIf="executeTarget?.targetCommandLine" class="cmd-row">
+        <span class="cmd-label">Tgt:</span>
+        <code class="cmd-code">{{ executeTarget?.targetCommandLine }}</code>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Valuation Date</label>
+      <dx-text-box
+        [(value)]="valuationDate"
+        placeholder="yyyy-MM-dd"
+        stylingMode="outlined">
+      </dx-text-box>
+    </div>
+
+    <div *ngIf="executeError" class="error-msg">{{ executeError }}</div>
+
+    <div class="popup-footer">
+      <button class="btn btn-ghost" (click)="executeVisible = false">Cancel</button>
+      <button class="btn btn-primary" [disabled]="executing || !valuationDate" (click)="confirmExecute()">
+        <dx-load-indicator *ngIf="executing" height="16" width="16"></dx-load-indicator>
+        {{ executing ? 'Running…' : 'Execute' }}
+      </button>
+    </div>
+  </div>
+
+</dx-popup>
+
+<!-- ── Delete Confirm Popup ───────────────────────────────────────────────── -->
+<dx-popup
+  [(visible)]="deleteVisible"
+  [width]="380"
+  [height]="'auto'"
+  [showTitle]="true"
+  title="Confirm Delete"
+  [dragEnabled]="false"
+  [showCloseButton]="true">
+
+  <div *dxTemplate="let data of 'content'" class="popup-content">
+    <p class="popup-desc">
+      Delete definition <strong>{{ deleteTarget?.name }}</strong>?
+      Existing executions that used this definition will not be affected.
+    </p>
+    <div class="popup-footer">
+      <button class="btn btn-ghost" (click)="deleteVisible = false">Cancel</button>
+      <button class="btn btn-danger" [disabled]="deleting" (click)="confirmDelete()">
+        {{ deleting ? 'Deleting…' : 'Delete' }}
+      </button>
+    </div>
+  </div>
+
+</dx-popup>

@@ -1,7 +1,7 @@
 namespace Xero.WebApi.Models;
 
-/// <summary>Returned by POST /api/nrt/runs after a run completes.</summary>
-public sealed class NrtRunResponse
+/// <summary>Returned by POST /api/run-executions after a run completes.</summary>
+public sealed class RunExecutionResponse
 {
     public int            RunId            { get; init; }
     public string         ScenarioName     { get; init; } = string.Empty;
@@ -16,10 +16,11 @@ public sealed class NrtRunResponse
     public int            OnlyInTgtCount   { get; init; }
     public bool           Passed           { get; init; }
     public double         DurationSeconds  { get; init; }
+    public string         Status           { get; init; } = "completed";
 }
 
-/// <summary>Returned by GET /api/nrt/runs and GET /api/nrt/runs/{runId}.</summary>
-public sealed class NrtRunSummary
+/// <summary>Returned by GET /api/run-executions and GET /api/run-executions/{runId}.</summary>
+public sealed class RunExecutionSummary
 {
     public int            RunId            { get; init; }
     public DateTimeOffset RunTimestamp     { get; init; }
@@ -36,4 +37,29 @@ public sealed class NrtRunSummary
 
     /// <summary>Raw JSON string of the ColumnDef[] schema stored at run creation time.</summary>
     public string?        ColumnSchemaJson { get; init; }
+
+    // ── Status tracking ───────────────────────────────────────────────────────
+    /// <summary>pending | running_commands | running_comparison | saving_results | completed | failed</summary>
+    public string         Status              { get; init; } = "completed";
+    public string?        ErrorMessage        { get; init; }
+
+    // Per-command status
+    public string?        RefCmdStatus        { get; init; }   // null=skipped | running | completed | failed
+    public string?        TgtCmdStatus        { get; init; }
+    public DateTimeOffset? RefCmdStartedAt    { get; init; }
+    public DateTimeOffset? RefCmdFinishedAt   { get; init; }
+    public int?           RefCmdExitCode      { get; init; }
+    public string?        RefCmdError         { get; init; }
+    public DateTimeOffset? TgtCmdStartedAt    { get; init; }
+    public DateTimeOffset? TgtCmdFinishedAt   { get; init; }
+    public int?           TgtCmdExitCode      { get; init; }
+    public string?        TgtCmdError         { get; init; }
+
+    // Pipeline phase timestamps
+    public DateTimeOffset? ComparisonStartedAt { get; init; }
+    public DateTimeOffset? SavingStartedAt      { get; init; }
+    public DateTimeOffset? FinishedAt           { get; init; }
+
+    public Guid?          DefinitionId         { get; init; }
 }
+

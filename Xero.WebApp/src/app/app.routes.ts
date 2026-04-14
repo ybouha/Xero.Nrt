@@ -13,19 +13,29 @@ export const routes: Routes = [
           import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
       },
       {
-        path: 'nrt-runs',
+        path: 'run-executions',
         loadComponent: () =>
-          import('./pages/nrt-runs/nrt-runs.component').then(m => m.NrtRunsComponent),
+          import('./pages/run-executions/run-executions.component').then(m => m.RunExecutionsComponent),
+      },
+      {
+        path: 'run-definitions',
+        loadComponent: () =>
+          import('./pages/run-definitions/run-definitions.component').then(m => m.RunDefinitionsComponent),
+      },
+      {
+        path: 'run-definitions/new',
+        loadComponent: () =>
+          import('./pages/run-definition-form/run-definition-form.component').then(m => m.RunDefinitionFormComponent),
+      },
+      {
+        path: 'run-definitions/:id/edit',
+        loadComponent: () =>
+          import('./pages/run-definition-form/run-definition-form.component').then(m => m.RunDefinitionFormComponent),
       },
       {
         path: 'diff-results',
         loadComponent: () =>
           import('./pages/diff-results/diff-results.component').then(m => m.DiffResultsComponent),
-      },
-      {
-        path: 'new-run',
-        loadComponent: () =>
-          import('./pages/new-run/new-run.component').then(m => m.NewRunComponent),
       },
       { path: '**', redirectTo: 'dashboard' },
     ],

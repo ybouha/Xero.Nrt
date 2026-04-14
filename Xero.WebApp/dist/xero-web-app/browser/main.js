@@ -43,7 +43,7 @@ import {
   ɵɵtemplate,
   ɵɵtext,
   ɵɵtextInterpolate
-} from "./chunk-MKDRXMS5.js";
+} from "./chunk-WGIWJJBP.js";
 
 // node_modules/@angular/animations/fesm2022/animations.mjs
 var AnimationMetadataType;
@@ -4617,7 +4617,8 @@ var SidebarComponent = class _SidebarComponent {
   constructor() {
     this.mainNav = [
       { label: "Dashboard", icon: "grid", route: "/dashboard" },
-      { label: "NRT Runs", icon: "list", route: "/nrt-runs" },
+      { label: "Run Executions", icon: "list", route: "/run-executions" },
+      { label: "Run Definitions", icon: "book-open", route: "/run-definitions" },
       { label: "Diff Results", icon: "search", route: "/diff-results" },
       { label: "New Run", icon: "plus-circle", route: "/new-run" }
     ];
@@ -4630,6 +4631,7 @@ var SidebarComponent = class _SidebarComponent {
       list: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
       search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
       "plus-circle": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+      "book-open": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
       "help-circle": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
       settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
     };
@@ -4735,19 +4737,35 @@ var routes = [
     children: [
       {
         path: "dashboard",
-        loadComponent: () => import("./chunk-UM2GMIS2.js").then((m) => m.DashboardComponent)
+        loadComponent: () => import("./chunk-ADQC3Y3A.js").then((m) => m.DashboardComponent)
       },
       {
         path: "nrt-runs",
-        loadComponent: () => import("./chunk-XNQIUOJO.js").then((m) => m.NrtRunsComponent)
+        loadComponent: () => import("./chunk-THBQ5XUE.js").then((m) => m.NrtRunsComponent)
+      },
+      {
+        path: "run-executions",
+        loadComponent: () => import("./chunk-IJJCKAX4.js").then((m) => m.RunExecutionsComponent)
+      },
+      {
+        path: "run-definitions",
+        loadComponent: () => import("./chunk-2MMOLOPN.js").then((m) => m.RunDefinitionsComponent)
+      },
+      {
+        path: "run-definitions/new",
+        loadComponent: () => import("./chunk-PI4U3BAZ.js").then((m) => m.RunDefinitionFormComponent)
+      },
+      {
+        path: "run-definitions/:id/edit",
+        loadComponent: () => import("./chunk-PI4U3BAZ.js").then((m) => m.RunDefinitionFormComponent)
       },
       {
         path: "diff-results",
-        loadComponent: () => import("./chunk-3BNREZBY.js").then((m) => m.DiffResultsComponent)
+        loadComponent: () => import("./chunk-JRBYDR5K.js").then((m) => m.DiffResultsComponent)
       },
       {
         path: "new-run",
-        loadComponent: () => import("./chunk-44KVI262.js").then((m) => m.NewRunComponent)
+        loadComponent: () => import("./chunk-Y7GJLKMU.js").then((m) => m.NewRunComponent)
       },
       { path: "**", redirectTo: "dashboard" }
     ]

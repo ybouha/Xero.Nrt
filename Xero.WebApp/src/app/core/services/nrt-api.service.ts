@@ -2,7 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { NrtRunRequest, NrtRunResponse, NrtRunSummary } from '../models/nrt.models';
+import {
+  ExecuteFromDefinitionRequest,
+  NrtRunDefinition,
+  NrtRunDefinitionSummary,
+  RunExecutionResponse,
+  RunExecutionSummary,
+  SaveNrtRunDefinitionRequest,
+} from '../models/nrt.models';
 
 @Injectable({ providedIn: 'root' })
 export class NrtApiService {
@@ -10,16 +17,40 @@ export class NrtApiService {
 
   constructor(private http: HttpClient) {}
 
-  executeRun(request: NrtRunRequest): Observable<NrtRunResponse> {
-    return this.http.post<NrtRunResponse>(`${this.base}/nrt/runs`, request);
-  }
+  // ── Run Executions ───────────────────────────────────────────────────────────
 
-  getRuns(page = 1, pageSize = 20): Observable<NrtRunSummary[]> {
+  getRuns(page = 1, pageSize = 20): Observable<RunExecutionSummary[]> {
     const params = new HttpParams().set('page', page).set('pageSize', pageSize);
-    return this.http.get<NrtRunSummary[]>(`${this.base}/runs`, { params });
+    return this.http.get<RunExecutionSummary[]>(`${this.base}/run-executions`, { params });
   }
 
-  getRun(runId: number): Observable<NrtRunSummary> {
-    return this.http.get<NrtRunSummary>(`${this.base}/runs/${runId}`);
+  getRun(runId: number): Observable<RunExecutionSummary> {
+    return this.http.get<RunExecutionSummary>(`${this.base}/run-executions/${runId}`);
+  }
+
+  // ── Run Definitions ──────────────────────────────────────────────────────────
+
+  getDefinitions(): Observable<NrtRunDefinitionSummary[]> {
+    return this.http.get<NrtRunDefinitionSummary[]>(`${this.base}/run-definitions`);
+  }
+
+  getDefinition(id: string): Observable<NrtRunDefinition> {
+    return this.http.get<NrtRunDefinition>(`${this.base}/run-definitions/${id}`);
+  }
+
+  createDefinition(req: SaveNrtRunDefinitionRequest): Observable<{ definitionId: string }> {
+    return this.http.post<{ definitionId: string }>(`${this.base}/run-definitions`, req);
+  }
+
+  updateDefinition(id: string, req: SaveNrtRunDefinitionRequest): Observable<void> {
+    return this.http.put<void>(`${this.base}/run-definitions/${id}`, req);
+  }
+
+  deleteDefinition(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/run-definitions/${id}`);
+  }
+
+  executeFromDefinition(id: string, req: ExecuteFromDefinitionRequest): Observable<RunExecutionResponse> {
+    return this.http.post<RunExecutionResponse>(`${this.base}/run-definitions/${id}/execute`, req);
   }
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { DiffFilter, DiffResultDto, NrtRunSummary, PagedResult } from '../models/nrt.models';
+import { DiffFilter, DiffResultDto, RunExecutionSummary, PagedResult } from '../models/nrt.models';
 
 @Injectable({ providedIn: 'root' })
 export class ResultViewerService {
@@ -10,13 +10,13 @@ export class ResultViewerService {
 
   constructor(private http: HttpClient) {}
 
-  getRuns(page = 1, pageSize = 20): Observable<PagedResult<NrtRunSummary>> {
+  getRuns(page = 1, pageSize = 20): Observable<PagedResult<RunExecutionSummary>> {
     const params = new HttpParams().set('page', page).set('pageSize', pageSize);
-    return this.http.get<PagedResult<NrtRunSummary>>(`${this.base}/runs`, { params });
+    return this.http.get<PagedResult<RunExecutionSummary>>(`${this.base}/runs`, { params });
   }
 
-  getRun(runId: number): Observable<NrtRunSummary> {
-    return this.http.get<NrtRunSummary>(`${this.base}/runs/${runId}`);
+  getRun(runId: number): Observable<RunExecutionSummary> {
+    return this.http.get<RunExecutionSummary>(`${this.base}/runs/${runId}`);
   }
 
   getDiffsForRun(runId: number, filter: DiffFilter): Observable<PagedResult<DiffResultDto>> {

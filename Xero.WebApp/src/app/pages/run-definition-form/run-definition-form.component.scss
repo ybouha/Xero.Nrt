@@ -1,0 +1,189 @@
+.def-form-page {
+  max-width: 1100px;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.page-header {
+  margin-bottom: 20px;
+  h1 { font-size: 22px; font-weight: 700; margin: 4px 0 0; }
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  svg { color: var(--text-secondary); }
+}
+
+.breadcrumb-link {
+  color: var(--accent);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+.page-loader { display: block; margin: 60px auto; }
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+.form-body   { display: flex; flex-direction: column; gap: 16px; }
+
+.form-section {
+  padding: 20px 24px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  .section-title { margin-bottom: 0; }
+}
+
+// ── Field layout ──────────────────────────────────────────────────────────────
+.field-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+  align-items: flex-start;
+
+  &.three > .field-group { flex: 1; }
+  &.align-center { align-items: center; }
+
+  &:last-child { margin-bottom: 0; }
+}
+
+.field-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &.narrow { flex: 0 0 160px; }
+  &.required .field-label::after { content: ' *'; color: var(--fail-color, #f66d6d); }
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  opacity: .75;
+}
+
+// ── Column Schema table ───────────────────────────────────────────────────────
+.schema-table { display: flex; flex-direction: column; gap: 6px; }
+
+.schema-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0 4px 4px;
+
+  .col-name { flex: 1; }
+  .col-type { width: 130px; }
+  .col-del  { width: 28px; }
+}
+
+.schema-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  .col-name { flex: 1; }
+  .col-type { width: 130px; }
+}
+
+.schema-empty {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 8px 4px;
+  font-style: italic;
+}
+
+.btn-del {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: color .15s, background .15s;
+  &:hover { color: var(--fail-color, #f66d6d); background: rgba(246,109,109,.1); }
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: opacity .2s;
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+.btn-primary { background: var(--accent); color: #fff; &:hover:not(:disabled) { opacity: .85; } }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
+  &:hover:not(:disabled) { border-color: var(--accent); }
+}
+
+// ── Error / Footer ────────────────────────────────────────────────────────────
+.error-banner {
+  font-size: 13px;
+  color: var(--fail-color, #f66d6d);
+  background: rgba(246,109,109,.08);
+  border: 1px solid rgba(246,109,109,.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-bottom: 32px;
+}

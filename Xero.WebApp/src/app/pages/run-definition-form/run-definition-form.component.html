@@ -1,0 +1,235 @@
+<div class="def-form-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a routerLink="/run-definitions" class="breadcrumb-link">Run Definitions</a>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      <span>{{ isEdit ? 'Edit Definition' : 'New Definition' }}</span>
+    </div>
+    <h1>{{ isEdit ? 'Edit Definition' : 'New Definition' }}</h1>
+  </div>
+
+  <dx-load-indicator [visible]="loading" height="36" width="36" class="page-loader" *ngIf="loading" />
+
+  <div *ngIf="loadError" class="error-banner">{{ loadError }}</div>
+
+  <div class="form-body" *ngIf="!loading">
+
+    <!-- ── Section: Definition Info ─────────────────────────────────────── -->
+    <div class="form-section card">
+      <div class="section-title">Definition Info</div>
+
+      <div class="field-row">
+        <div class="field-group required">
+          <label class="field-label">Name</label>
+          <dx-text-box [(value)]="name" placeholder="e.g. VaR NRT – Prod vs UAT" stylingMode="outlined" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Scope</label>
+          <dx-text-box [(value)]="scope" placeholder="e.g. Trading Book" stylingMode="outlined" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Description</label>
+        <dx-text-area [(value)]="description" placeholder="Optional description…" [height]="60" stylingMode="outlined" />
+      </div>
+    </div>
+
+    <!-- ── Section: Pre-Execution Commands ─────────────────────────────── -->
+    <div class="form-section card">
+      <div class="section-title">Pre-Execution Commands
+        <span class="section-hint">Optional shell commands run before the comparison (e.g. data generation scripts)</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Reference Command</label>
+          <dx-text-area [(value)]="refCommandLine"
+                        placeholder="e.g. python generate_ref.py --date {valuationDate}"
+                        [height]="72" stylingMode="outlined" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Target Command</label>
+          <dx-text-area [(value)]="targetCommandLine"
+                        placeholder="e.g. dotnet run --project GenTarget -- --date {valuationDate}"
+                        [height]="72" stylingMode="outlined" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section: Scenario ────────────────────────────────────────────── -->
+    <div class="form-section card">
+      <div class="section-title">Scenario</div>
+
+      <div class="field-row three">
+        <div class="field-group required">
+          <label class="field-label">Scenario Name</label>
+          <dx-text-box [(value)]="scenarioName" placeholder="e.g. VaR NRT" stylingMode="outlined" />
+        </div>
+        <div class="field-group required">
+          <label class="field-label">Reference Version</label>
+          <dx-text-box [(value)]="referenceVersion" placeholder="e.g. prod-2025-01" stylingMode="outlined" />
+        </div>
+        <div class="field-group required">
+          <label class="field-label">Target Version</label>
+          <dx-text-box [(value)]="targetVersion" placeholder="e.g. uat-2025-02" stylingMode="outlined" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section: Reference DB ────────────────────────────────────────── -->
+    <div class="form-section card">
+      <div class="section-title">Reference Database</div>
+
+      <div class="field-row">
+        <div class="field-group narrow">
+          <label class="field-label">Provider</label>
+          <dx-select-box [(value)]="reference.provider" [items]="providerOptions" stylingMode="outlined" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Connection String</label>
+          <dx-text-box [(value)]="reference.connectionString" stylingMode="outlined" />
+        </div>
+        <div class="field-group narrow">
+          <label class="field-label">Timeout (s)</label>
+          <dx-number-box [(value)]="reference.timeoutSeconds" [min]="1" [max]="3600" stylingMode="outlined" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Query</label>
+        <dx-text-area [(value)]="reference.query" [height]="120" stylingMode="outlined"
+                      placeholder="SELECT ... FROM ... WHERE valuation_date::text = @ValuationDate" />
+      </div>
+    </div>
+
+    <!-- ── Section: Target DB ───────────────────────────────────────────── -->
+    <div class="form-section card">
+      <div class="section-title">Target Database</div>
+
+      <div class="field-row">
+        <div class="field-group narrow">
+          <label class="field-label">Provider</label>
+          <dx-select-box [(value)]="target.provider" [items]="providerOptions" stylingMode="outlined" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Connection String</label>
+          <dx-text-box [(value)]="target.connectionString" stylingMode="outlined" />
+        </div>
+        <div class="field-group narrow">
+          <label class="field-label">Timeout (s)</label>
+          <dx-number-box [(value)]="target.timeoutSeconds" [min]="1" [max]="3600" stylingMode="outlined" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Query</label>
+        <dx-text-area [(value)]="target.query" [height]="120" stylingMode="outlined"
+                      placeholder="SELECT ... FROM ... WHERE valuation_date::text = @ValuationDate" />
+      </div>
+    </div>
+
+    <!-- ── Section: Column Schema ────────────────────────────────────────── -->
+    <div class="form-section card">
+      <div class="section-header-row">
+        <div class="section-title">Column Schema</div>
+        <button class="btn btn-ghost btn-sm" (click)="addColumn()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Column
+        </button>
+      </div>
+
+      <div class="schema-table">
+        <div class="schema-header">
+          <span class="col-name">Column Name</span>
+          <span class="col-type">Type</span>
+          <span class="col-del"></span>
+        </div>
+        <div class="schema-row" *ngFor="let col of columnSchema; let i = index">
+          <dx-text-box class="col-name" [value]="col.name"
+                       (onValueChanged)="updateColumnName(i, $event.value)"
+                       stylingMode="outlined" placeholder="ColumnName" />
+          <dx-select-box class="col-type" [value]="col.type"
+                         [items]="columnTypeOptions"
+                         (onValueChanged)="updateColumnType(i, $event.value)"
+                         stylingMode="outlined" />
+          <button class="btn-del" (click)="removeColumn(i)" title="Remove">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="schema-empty" *ngIf="columnSchema.length === 0">No columns defined — click Add Column.</div>
+      </div>
+    </div>
+
+    <!-- ── Section: Compare Settings ────────────────────────────────────── -->
+    <div class="form-section card">
+      <div class="section-title">Compare Settings</div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Key Properties
+            <span class="field-hint">Fields that uniquely identify a row</span>
+          </label>
+          <dx-tag-box
+            [(value)]="compare.keyProperties"
+            [items]="columnNames"
+            [acceptCustomValue]="true"
+            [showSelectionControls]="false"
+            stylingMode="outlined"
+            placeholder="Select or type key columns…" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Compare Properties
+            <span class="field-hint">Leave empty to compare all non-key columns</span>
+          </label>
+          <dx-tag-box
+            [(value)]="compare.compareProperties"
+            [items]="columnNames"
+            [acceptCustomValue]="true"
+            [showSelectionControls]="false"
+            stylingMode="outlined"
+            placeholder="All non-key columns (default)" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section: Output Settings ─────────────────────────────────────── -->
+    <div class="form-section card">
+      <div class="section-title">Output Settings</div>
+
+      <div class="field-row align-center">
+        <dx-check-box [(value)]="output.diffDb.enabled" text="Save diffs to database" />
+      </div>
+
+      <div class="field-row" *ngIf="output.diffDb.enabled">
+        <div class="field-group narrow">
+          <label class="field-label">Provider</label>
+          <dx-select-box [(value)]="output.diffDb.provider" [items]="providerOptions" stylingMode="outlined" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Connection String</label>
+          <dx-text-box [(value)]="output.diffDb.connectionString" stylingMode="outlined" />
+        </div>
+        <div class="field-group narrow">
+          <label class="field-label">Table Name</label>
+          <dx-text-box [(value)]="output.diffDb.tableName" stylingMode="outlined" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Save error ────────────────────────────────────────────────────── -->
+    <div *ngIf="saveError" class="error-banner">{{ saveError }}</div>
+
+    <!-- ── Footer buttons ────────────────────────────────────────────────── -->
+    <div class="form-footer">
+      <button class="btn btn-ghost" (click)="cancel()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving">
+        <dx-load-indicator *ngIf="saving" height="16" width="16"></dx-load-indicator>
+        {{ saving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Create Definition') }}
+      </button>
+    </div>
+
+  </div>
+</div>

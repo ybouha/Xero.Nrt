@@ -28,6 +28,16 @@ public sealed class NrtRunRequest
     /// provide a pre-existing type (backwards-compatible path).
     /// </summary>
     public ColumnDef[] ColumnSchema { get; set; } = [];
+
+    // ── Optional definition linkage ───────────────────────────────────────────
+    /// <summary>When set, the run is associated with this saved definition.</summary>
+    public Guid?   DefinitionId      { get; set; }
+
+    /// <summary>Shell command to run before loading reference data (optional).</summary>
+    public string? RefCommandLine    { get; set; }
+
+    /// <summary>Shell command to run before loading target data (optional).</summary>
+    public string? TargetCommandLine { get; set; }
 }
 
 public sealed class DbSettingsDto

@@ -98,45 +98,35 @@ CREATE INDEX IF NOT EXISTS ix_tgt_key
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Diff results  (one row per comparison outcome)
 --    Schema kept in sync with DbDiffSaver.BuildPostgreSqlDdl().
---    Key properties (TradeId, Book, Desk, RiskFactor, ValuationDate) get their
---    own queryable columns.
+--
+--    Fully schema-agnostic: no domain-specific key columns.
+--    Key values are embedded in CompareItems JSONB and read at query time
+--    using the run's ColumnSchema stored in nrt_run_executions.column_schema.
 --
 --    DiffType     : "InBothButDiff" | "OnlyInReference" | "OnlyInTarget"
 --    Diffs        : {"FieldName":{"Ref":<val>,"Tgt":<val>}, …}  (InBothButDiff only)
 --    CompareItems : JSON array of the items involved:
---                   InBothButDiff  → [referenceItem, targetItem]
+--                   InBothButDiff   → [referenceItem, targetItem]
 --                   OnlyInReference → [referenceItem]
 --                   OnlyInTarget    → [targetItem]
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "NrtDiffResults" (
-    "Id"               SERIAL          NOT NULL PRIMARY KEY,
-    "RunTimestamp"     TIMESTAMPTZ     NOT NULL,
-    "ScenarioName"     TEXT            NOT NULL,
-    "ReferenceVersion" TEXT            NOT NULL,
-    "TargetVersion"    TEXT            NOT NULL,
-
-    -- composite key columns (must match CompareSettings.KeyProperties)
-    "TradeId"          TEXT,
-    "Book"             TEXT,
-    "Desk"             TEXT,
-    "RiskFactor"       TEXT,
-    "ValuationDate"    TEXT,
-
-    -- categorisation
+    "Id"               SERIAL      NOT NULL PRIMARY KEY,
+    "RunId"            INTEGER     NULL REFERENCES nrt_run_executions (run_id) ON DELETE SET NULL,
+    "RunTimestamp"     TIMESTAMPTZ NOT NULL,
+    "ScenarioName"     TEXT        NOT NULL,
+    "ReferenceVersion" TEXT        NOT NULL,
+    "TargetVersion"    TEXT        NOT NULL,
     "DiffType"         TEXT,
-
-    -- field-level diff payload  (InBothButDiff only)
     "Diffs"            JSONB,
-
-    -- full item snapshots involved in this comparison outcome
     "CompareItems"     JSONB
 );
 
+CREATE INDEX IF NOT EXISTS ix_diff_run_id
+    ON "NrtDiffResults" ("RunId");
+
 CREATE INDEX IF NOT EXISTS ix_diff_timestamp
     ON "NrtDiffResults" ("RunTimestamp");
-
-CREATE INDEX IF NOT EXISTS ix_diff_key
-    ON "NrtDiffResults" ("TradeId", "Book", "Desk", "RiskFactor", "ValuationDate");
 
 CREATE INDEX IF NOT EXISTS ix_diff_type
     ON "NrtDiffResults" ("DiffType");

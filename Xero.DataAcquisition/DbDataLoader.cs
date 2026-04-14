@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using Dapper;
 using Microsoft.Extensions.Logging;
 
@@ -9,25 +11,19 @@ namespace Xero.DataAcquisition;
 /// Both sides run concurrently so total wall-clock time equals the slower load,
 /// not the sum of the two.
 /// </summary>
-/// <example>
-/// // SQL Server (same engine on both sides)
-/// var loader = new DbDataLoader&lt;VarRow&gt;(SqlServerConnectionFactory.Instance);
-///
-/// // Mixed: production on SQL Server, UAT on PostgreSQL
-/// var loader = new DbDataLoader&lt;VarRow&gt;(SqlServerConnectionFactory.Instance,
-///                                         PostgreSqlConnectionFactory.Instance);
-/// </example>
 public sealed class DbDataLoader<T> : IDataLoader<T>
 {
-    private readonly IDbConnectionFactory  _refFactory;
-    private readonly IDbConnectionFactory  _tgtFactory;
+    private readonly IDbConnectionFactory     _refFactory;
+    private readonly IDbConnectionFactory     _tgtFactory;
     private readonly ILogger<DbDataLoader<T>>? _logger;
 
-    /// <summary>Use a single factory for both sides (most common case).</summary>
+    // column-name (lowercase, no underscores) → PropertyInfo, built once per T
+    private static readonly Lazy<Dictionary<string, PropertyInfo>> _propMap =
+        new(() => BuildPropertyMap(), LazyThreadSafetyMode.ExecutionAndPublication);
+
     public DbDataLoader(IDbConnectionFactory factory, ILogger<DbDataLoader<T>>? logger = null)
         : this(factory, factory, logger) { }
 
-    /// <summary>Use different factories when reference and target run on different engines.</summary>
     public DbDataLoader(
         IDbConnectionFactory referenceFactory,
         IDbConnectionFactory targetFactory,
@@ -68,6 +64,8 @@ public sealed class DbDataLoader<T> : IDataLoader<T>
         return (refTask.Result, tgtTask.Result);
     }
 
+    // ── Private helpers ───────────────────────────────────────────────────────
+
     private static async Task<IReadOnlyList<T>> LoadSideAsync(
         IDbConnectionFactory factory,
         string connectionString,
@@ -81,11 +79,30 @@ public sealed class DbDataLoader<T> : IDataLoader<T>
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
         using var conn = factory.CreateConnection(connectionString);
-        var cmd  = new CommandDefinition(sql, parameters,
-                       commandTimeout: timeoutSeconds, cancellationToken: ct);
+        var cmd = new CommandDefinition(sql, parameters,
+                      commandTimeout: timeoutSeconds, cancellationToken: ct);
 
-        var rows = await conn.QueryAsync<T>(cmd);
-        var list = rows.AsList();
+        // QueryAsync (untyped) returns IDictionary<string,object> per row — avoids
+        // Dapper's Convert.ChangeType path which fails for types that do not implement
+        // IConvertible (e.g. Npgsql's DateOnly for PostgreSQL date columns).
+        var rawRows = await conn.QueryAsync(cmd);
+
+        var propMap = _propMap.Value;
+        var list = rawRows
+            .Select(row =>
+            {
+                var item = Activator.CreateInstance<T>();
+                foreach (var (colName, rawVal) in (IDictionary<string, object>)row)
+                {
+                    if (rawVal is null or System.DBNull) continue;
+                    if (!propMap.TryGetValue(Normalize(colName), out var prop)) continue;
+                    var converted = CoerceValue(rawVal, prop.PropertyType);
+                    if (converted is not null)
+                        prop.SetValue(item, converted);
+                }
+                return item;
+            })
+            .ToList();
 
         sw.Stop();
         logger?.LogInformation(
@@ -93,5 +110,64 @@ public sealed class DbDataLoader<T> : IDataLoader<T>
             side, list.Count, sw.Elapsed.TotalSeconds);
 
         return list;
+    }
+
+    /// <summary>
+    /// Builds a lookup: normalised column name → PropertyInfo.
+    /// Normalised = lowercase with underscores removed so both "TradeId"
+    /// and "trade_id" map to the same key.
+    /// </summary>
+    private static Dictionary<string, PropertyInfo> BuildPropertyMap()
+    {
+        var map = new Dictionary<string, PropertyInfo>(StringComparer.Ordinal);
+        foreach (var prop in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            map[Normalize(prop.Name)] = prop;
+        return map;
+    }
+
+    /// <summary>Lowercase + strip underscores for column → property matching.</summary>
+    private static string Normalize(string name) =>
+        name.Replace("_", "", StringComparison.Ordinal).ToLowerInvariant();
+
+    /// <summary>
+    /// Converts a raw DB value to the target property type.
+    /// Handles types that do not implement IConvertible (e.g. DateOnly).
+    /// </summary>
+    private static object? CoerceValue(object value, Type targetType)
+    {
+        var underlying = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+        // Already the right type (or assignable)
+        if (underlying.IsInstanceOfType(value))
+            return value;
+
+        // DateOnly (Npgsql returns this for PostgreSQL `date` columns)
+        if (value is DateOnly dateOnly)
+        {
+            if (underlying == typeof(DateTime))   return dateOnly.ToDateTime(TimeOnly.MinValue);
+            if (underlying == typeof(string))     return dateOnly.ToString("yyyy-MM-dd");
+            if (underlying == typeof(DateOnly))   return dateOnly;   // already covered above
+        }
+
+        // TimeOnly (Npgsql returns this for PostgreSQL `time` columns)
+        if (value is TimeOnly timeOnly)
+        {
+            if (underlying == typeof(TimeSpan)) return timeOnly.ToTimeSpan();
+            if (underlying == typeof(string))   return timeOnly.ToString("O");
+        }
+
+        // Generic fallback — works for numeric types, booleans, strings, etc.
+        if (underlying == typeof(string))
+            return value.ToString();
+
+        try
+        {
+            return Convert.ChangeType(value, underlying);
+        }
+        catch
+        {
+            // Best-effort: leave property at default rather than crash the run
+            return null;
+        }
     }
 }

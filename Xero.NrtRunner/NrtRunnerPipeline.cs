@@ -148,7 +148,6 @@ public sealed class NrtRunnerPipeline<T> : INrtRunnerPipeline where T : class, n
                 diffFactory,
                 settings.Output.DiffDb.ConnectionString,
                 settings.Output.DiffDb.TableName,
-                keyProps.ToArray(),
                 loggerFactory.CreateLogger<DbDiffSaver<T>>()));
         }
 

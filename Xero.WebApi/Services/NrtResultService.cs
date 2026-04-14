@@ -6,7 +6,7 @@ using Xero.WebApi.Models;
 namespace Xero.WebApi.Services;
 
 /// <summary>
-/// Queries <c>nrt_runs</c> and <c>NrtDiffResults</c> directly using Dapper.
+/// Queries <c>nrt_run_executions</c> and <c>NrtDiffResults</c> directly using Dapper.
 /// Diffs are correlated to runs via the <c>RunId</c> FK column written by
 /// <see cref="Xero.ResultSaver.DbDiffSaver{T}"/> at save time.
 /// </summary>
@@ -25,8 +25,24 @@ public sealed class NrtResultService : INrtResultService
                only_in_ref_count        AS OnlyInRefCount,
                only_in_tgt_count        AS OnlyInTgtCount,
                passed                   AS Passed,
-               column_schema::text      AS ColumnSchemaJson
-        FROM   nrt_runs";
+               column_schema::text      AS ColumnSchemaJson,
+               status                   AS Status,
+               error_message            AS ErrorMessage,
+               ref_cmd_status           AS RefCmdStatus,
+               ref_cmd_started_at       AS RefCmdStartedAt,
+               ref_cmd_finished_at      AS RefCmdFinishedAt,
+               ref_cmd_exit_code        AS RefCmdExitCode,
+               ref_cmd_error            AS RefCmdError,
+               tgt_cmd_status           AS TgtCmdStatus,
+               tgt_cmd_started_at       AS TgtCmdStartedAt,
+               tgt_cmd_finished_at      AS TgtCmdFinishedAt,
+               tgt_cmd_exit_code        AS TgtCmdExitCode,
+               tgt_cmd_error            AS TgtCmdError,
+               comparison_started_at    AS ComparisonStartedAt,
+               saving_started_at        AS SavingStartedAt,
+               finished_at              AS FinishedAt,
+               definition_id            AS DefinitionId
+        FROM   nrt_run_executions";
 
     private const string DiffSelect = @"
         SELECT d.""Id""               AS Id,
@@ -45,19 +61,19 @@ public sealed class NrtResultService : INrtResultService
 
     // ── Runs ──────────────────────────────────────────────────────────────────
 
-    public async Task<PagedResult<NrtRunDto>> GetRunsAsync(
+    public async Task<PagedResult<RunExecutionDto>> GetRunsAsync(
         int page, int pageSize, CancellationToken ct)
     {
         var totalCount = await _connection.ExecuteScalarAsync<int>(
-            new CommandDefinition("SELECT COUNT(*) FROM nrt_runs", cancellationToken: ct));
+            new CommandDefinition("SELECT COUNT(*) FROM nrt_run_executions", cancellationToken: ct));
 
-        var items = await _connection.QueryAsync<NrtRunDto>(
+        var items = await _connection.QueryAsync<RunExecutionDto>(
             new CommandDefinition(
                 RunSelect + " ORDER BY run_timestamp DESC LIMIT @PageSize OFFSET @Offset",
                 new { PageSize = pageSize, Offset = (page - 1) * pageSize },
                 cancellationToken: ct));
 
-        return new PagedResult<NrtRunDto>
+        return new PagedResult<RunExecutionDto>
         {
             Items      = items.AsList(),
             TotalCount = totalCount,
@@ -66,8 +82,8 @@ public sealed class NrtResultService : INrtResultService
         };
     }
 
-    public async Task<NrtRunDto?> GetRunAsync(int runId, CancellationToken ct)
-        => await _connection.QuerySingleOrDefaultAsync<NrtRunDto>(
+    public async Task<RunExecutionDto?> GetRunAsync(int runId, CancellationToken ct)
+        => await _connection.QuerySingleOrDefaultAsync<RunExecutionDto>(
             new CommandDefinition(
                 RunSelect + " WHERE run_id = @RunId",
                 new { RunId = runId },
