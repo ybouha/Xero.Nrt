@@ -41,7 +41,11 @@ public sealed class NrtResultService : INrtResultService
                comparison_started_at    AS ComparisonStartedAt,
                saving_started_at        AS SavingStartedAt,
                finished_at              AS FinishedAt,
-               definition_id            AS DefinitionId
+               definition_id            AS DefinitionId,
+               ref_query                AS RefQuery,
+               target_query             AS TargetQuery,
+               ref_script               AS RefScript,
+               target_script            AS TargetScript
         FROM   nrt_run_executions";
 
     private const string DiffSelect = @"
@@ -88,6 +92,25 @@ public sealed class NrtResultService : INrtResultService
                 RunSelect + " WHERE run_id = @RunId",
                 new { RunId = runId },
                 cancellationToken: ct));
+
+    // ── Logs – scoped to a single run ─────────────────────────────────────────
+
+    public async Task<IReadOnlyList<RunLogDto>> GetRunLogsAsync(int runId, CancellationToken ct)
+    {
+        var rows = await _connection.QueryAsync<RunLogDto>(
+            new CommandDefinition(
+                @"SELECT ts             AS Timestamp,
+                         level          AS Level,
+                         message        AS Message,
+                         exception      AS Exception,
+                         source_context AS SourceContext
+                  FROM   nrt_run_logs
+                  WHERE  run_id = @RunId
+                  ORDER  BY ts, id",
+                new { RunId = runId },
+                cancellationToken: ct));
+        return rows.AsList();
+    }
 
     // ── Diffs – global ────────────────────────────────────────────────────────
 

@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: xero-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: tc0ab1y
+      POSTGRES_DB: Xero
+    ports:
+      - "5433:5432"
+    volumes:
+      - xero-postgres-data:/var/lib/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d Xero"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  xero-postgres-data:

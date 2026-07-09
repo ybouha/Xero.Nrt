@@ -1,0 +1,183 @@
+.cron-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--card-bg, #1a2236);
+}
+
+// ── Tab strip ──────────────────────────────────────────────────────────────────
+.cb-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(0, 0, 0, .15);
+}
+
+.cb-tab {
+  flex: 1;
+  padding: 9px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color .15s, background .15s;
+
+  &:hover:not(.active) { color: var(--text-primary); background: rgba(255,255,255,.04); }
+  &.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
+}
+
+// ── Tab body ───────────────────────────────────────────────────────────────────
+.cb-body {
+  padding: 16px 16px 12px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+// ── Options (radio groups) ─────────────────────────────────────────────────────
+.cb-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cb-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-wrap: wrap;
+
+  input[type="radio"] { accent-color: var(--accent); cursor: pointer; }
+}
+
+// ── Inline row ─────────────────────────────────────────────────────────────────
+.cb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.sep { color: var(--text-secondary); font-weight: 700; }
+
+// ── Number inputs ──────────────────────────────────────────────────────────────
+.cb-num {
+  width: 58px;
+  padding: 5px 8px;
+  font-size: 13px;
+  text-align: center;
+  background: var(--content-bg, #0f1624);
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color .15s;
+
+  &:focus { border-color: var(--accent); }
+  &:disabled { opacity: .45; cursor: not-allowed; }
+
+  // hide spinners
+  -moz-appearance: textfield;
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+}
+
+// ── Selects ────────────────────────────────────────────────────────────────────
+.cb-select {
+  padding: 5px 28px 5px 8px;
+  font-size: 13px;
+  background: var(--content-bg, #0f1624);
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238892aa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  cursor: pointer;
+  transition: border-color .15s;
+
+  &:focus { border-color: var(--accent); }
+  &:disabled { opacity: .45; cursor: not-allowed; }
+
+  option { background: #1a2236; }
+}
+
+// ── Day chips (weekly) ────────────────────────────────────────────────────────
+.cb-days {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cb-day {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  user-select: none;
+
+  input[type="checkbox"] { display: none; }
+
+  &.active {
+    background: rgba(79,142,247,.18);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:hover:not(.active) { border-color: rgba(255,255,255,.2); color: var(--text-primary); }
+}
+
+// ── Preview bar ────────────────────────────────────────────────────────────────
+.cb-preview {
+  padding: 10px 16px;
+  border-top: 1px solid var(--card-border);
+  background: rgba(0,0,0,.15);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cb-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cb-preview-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 70px;
+}
+
+.cb-expr {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: .02em;
+}
+
+.cb-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding-left: 80px;
+  font-style: italic;
+}

@@ -1,0 +1,132 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: xero-webapi
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# Two logical datasources, mirroring AuditDb / Db in the .NET appsettings.
+xero:
+  datasources:
+    audit:
+      jdbc-url: jdbc:postgresql://localhost:5432/Xero
+      username: postgres
+      password: tc0ab1y
+      driver-class-name: org.postgresql.Driver
+      provider: PostgreSql
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout-ms: 30000
+    primary:
+      jdbc-url: jdbc:postgresql://localhost:5432/Xero
+      username: postgres
+      password: tc0ab1y
+      driver-class-name: org.postgresql.Driver
+      provider: PostgreSql
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout-ms: 30000
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
+    allow-credentials: true
+  pipeline:
+    default-key-properties:
+      - TradeId
+      - Book
+      - Desk
+      - RiskFactor
+      - ValuationDate
+    default-diff-table-name: NrtDiffResults
+
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    org.springframework.jdbc.core: INFO
+    com.xero: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{runId:-}] [%thread] %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus, retries, circuitbreakers
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+# Resilience4j retry/circuit-breaker policies — applied via @Retry / @CircuitBreaker annotations.
+resilience4j:
+  retry:
+    instances:
+      database:
+        max-attempts: 4
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.dao.TransientDataAccessException
+          - org.springframework.dao.RecoverableDataAccessException
+          - org.springframework.jdbc.CannotGetJdbcConnectionException
+          - java.sql.SQLTransientException
+          - java.net.SocketTimeoutException
+        ignore-exceptions:
+          - org.springframework.dao.DuplicateKeyException
+          - org.springframework.dao.DataIntegrityViolationException
+      shellCommand:
+        max-attempts: 2
+        wait-duration: 1s
+        retry-exceptions:
+          - java.io.IOException
+          - java.io.UncheckedIOException
+        ignore-exceptions:
+          - java.util.concurrent.CancellationException
+  circuitbreaker:
+    instances:
+      database:
+        failure-rate-threshold: 60
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+      shellCommand:
+        failure-rate-threshold: 75
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+  timelimiter:
+    instances:
+      database:
+        timeout-duration: 60s
+        cancel-running-future: true

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { DiffFilter, DiffResultDto, RunExecutionSummary, PagedResult } from '../models/nrt.models';
+import { DiffFilter, DiffResultDto, RunExecutionSummary, RunLogEntry, PagedResult } from '../models/nrt.models';
 
 @Injectable({ providedIn: 'root' })
 export class ResultViewerService {
@@ -37,5 +37,9 @@ export class ResultViewerService {
 
   getDiff(id: number): Observable<DiffResultDto> {
     return this.http.get<DiffResultDto>(`${this.base}/diffs/${id}`);
+  }
+
+  getRunLogs(runId: number): Observable<RunLogEntry[]> {
+    return this.http.get<RunLogEntry[]>(`${this.base}/runs/${runId}/logs`);
   }
 }

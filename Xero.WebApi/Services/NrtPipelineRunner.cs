@@ -1,3 +1,4 @@
+using Dapper;
 using Microsoft.Extensions.Logging;
 using Xero.DataAcquisition;
 using Xero.ResultSaver;
@@ -54,8 +55,8 @@ public sealed class NrtPipelineRunner<T> : INrtPipelineRunner where T : class, n
             TargetConnectionString    = request.Target.ConnectionString,
             ReferenceSql              = request.Reference.Query,
             TargetSql                 = request.Target.Query,
-            ReferenceParams           = new { ValuationDate = request.ValuationDate },
-            TargetParams              = new { ValuationDate = request.ValuationDate },
+            ReferenceParams           = BuildParams(request.ValuationDate, request.Reference.Parameters),
+            TargetParams              = BuildParams(request.ValuationDate, request.Target.Parameters),
             CommandTimeoutSeconds     = Math.Max(
                 request.Reference.TimeoutSeconds, request.Target.TimeoutSeconds),
             ScenarioName              = request.ScenarioName,
@@ -136,6 +137,23 @@ public sealed class NrtPipelineRunner<T> : INrtPipelineRunner where T : class, n
         }
 
         return (reference.Count, target.Count, diffCount, onlyRefCount, onlyTgtCount);
+    }
+
+    /// <summary>
+    /// Merges the run's valuation date with this side's script-resolved parameters into a
+    /// Dapper <see cref="DynamicParameters"/> bag. List-valued parameters (e.g. <c>JobIds</c>)
+    /// are expanded by Dapper for <c>IN @JobIds</c> clauses. Script params win on a key clash
+    /// except for <c>ValuationDate</c>, which is always the run's value.
+    /// </summary>
+    private static DynamicParameters BuildParams(
+        string valuationDate, IReadOnlyDictionary<string, object?> scriptParams)
+    {
+        var p = new DynamicParameters();
+        p.Add("ValuationDate", valuationDate);
+        foreach (var kv in scriptParams)
+            if (!string.Equals(kv.Key, "ValuationDate", StringComparison.OrdinalIgnoreCase))
+                p.Add(kv.Key, kv.Value);
+        return p;
     }
 
     private static IDbConnectionFactory ResolveFactory(DbProvider provider) => provider switch

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Xero.SmartComparer;
 
 namespace Xero.WebApi.Models;
@@ -46,6 +47,14 @@ public sealed class DbSettingsDto
     public string     ConnectionString { get; set; } = string.Empty;
     public string     Query            { get; set; } = string.Empty;
     public int        TimeoutSeconds   { get; set; } = 300;
+
+    /// <summary>
+    /// Query parameters resolved at run time from this side's parameter script
+    /// (e.g. <c>JobIds</c>). Each key becomes a Dapper parameter bound to the query.
+    /// Transient — populated during execution, never persisted with the definition.
+    /// </summary>
+    [JsonIgnore]
+    public Dictionary<string, object?> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 public sealed class CompareSettingsDto

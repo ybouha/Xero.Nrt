@@ -41,6 +41,21 @@ export interface RunExecutionSummary {
   savingStartedAt?: string;
   finishedAt?: string;
   definitionId?: string;
+
+  // ── Snapshot of queries / scripts captured at run creation time ───────────────
+  refQuery?: string;
+  targetQuery?: string;
+  refScript?: string;
+  targetScript?: string;
+}
+
+/** A single correlated log line for an NRT run (mirrors C# RunLogDto). */
+export interface RunLogEntry {
+  timestamp: string;
+  level: string;
+  message: string;
+  exception?: string;
+  sourceContext?: string;
 }
 
 /** @deprecated Use RunExecutionSummary */
@@ -172,4 +187,34 @@ export interface SaveNrtRunDefinitionRequest {
 
 export interface ExecuteFromDefinitionRequest {
   valuationDate: string;
+}
+
+// ── Run Schedule models ────────────────────────────────────────────────────────
+
+export interface NrtRunSchedule {
+  scheduleId: string;
+  definitionId: string;
+  name: string;
+  cronExpression: string;
+  timeZone?: string;
+  /** Fixed ISO date (yyyy-MM-dd) used for every fire; null = the run day. */
+  valuationDate?: string;
+  isEnabled: boolean;
+  lastRunAt?: string;
+  lastRunId?: number;
+  lastStatus?: string;
+  lastError?: string;
+  createdAt: string;
+  updatedAt: string;
+  definitionName?: string;
+  nextFireTime?: string;
+}
+
+export interface SaveNrtRunScheduleRequest {
+  definitionId: string;
+  name: string;
+  cronExpression: string;
+  timeZone?: string;
+  valuationDate?: string;
+  isEnabled: boolean;
 }

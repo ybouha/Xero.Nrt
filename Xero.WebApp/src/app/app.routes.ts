@@ -37,6 +37,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/diff-results/diff-results.component').then(m => m.DiffResultsComponent),
       },
+      {
+        path: 'run-scheduling',
+        loadComponent: () =>
+          import('./pages/run-scheduling/run-scheduling.component').then(m => m.RunSchedulingComponent),
+      },
       { path: '**', redirectTo: 'dashboard' },
     ],
   },

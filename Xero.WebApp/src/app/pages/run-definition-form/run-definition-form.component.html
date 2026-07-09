@@ -37,24 +37,24 @@
       </div>
     </div>
 
-    <!-- ── Section: Pre-Execution Commands ─────────────────────────────── -->
+    <!-- ── Section: Parameter Scripts ──────────────────────────────────── -->
     <div class="form-section card">
-      <div class="section-title">Pre-Execution Commands
-        <span class="section-hint">Optional shell commands run before the comparison (e.g. data generation scripts)</span>
+      <div class="section-title">Parameter Scripts
+        <span class="section-hint">Optional PowerShell scripts run before the comparison. Each must emit one object whose properties become query parameters for that side (e.g. <code>&#64;{{ '{' }} JobIds = $ids {{ '}' }}</code> &rarr; <code>... IN &#64;JobIds</code>). Env vars available: <code>VALUATION_DATE</code>, <code>SCENARIO_NAME</code>, <code>RUN_SIDE</code>.</span>
       </div>
 
       <div class="field-row">
         <div class="field-group">
-          <label class="field-label">Reference Command</label>
+          <label class="field-label">Reference Script (PowerShell)</label>
           <dx-text-area [(value)]="refCommandLine"
-                        placeholder="e.g. python generate_ref.py --date {valuationDate}"
-                        [height]="72" stylingMode="outlined" />
+                        placeholder="$ids = @(101, 102, 103)&#10;@{ JobIds = $ids }"
+                        [height]="120" stylingMode="outlined" />
         </div>
         <div class="field-group">
-          <label class="field-label">Target Command</label>
+          <label class="field-label">Target Script (PowerShell)</label>
           <dx-text-area [(value)]="targetCommandLine"
-                        placeholder="e.g. dotnet run --project GenTarget -- --date {valuationDate}"
-                        [height]="72" stylingMode="outlined" />
+                        placeholder="$ids = Get-TargetJobIds -Date $env:VALUATION_DATE&#10;@{ JobIds = $ids }"
+                        [height]="120" stylingMode="outlined" />
         </div>
       </div>
     </div>

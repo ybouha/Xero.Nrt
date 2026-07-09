@@ -31,17 +31,19 @@ public static class SerilogHelper
     /// Use the project assembly name, e.g. <c>"Xero.NrtRunner"</c>.
     /// </param>
     /// <param name="minimumLevel">Minimum log level (default: <see cref="LogEventLevel.Information"/>).</param>
+    /// <param name="configure">Optional hook to attach extra sinks/enrichers (e.g. a DB sink) before the logger is built.</param>
     /// <returns>An <see cref="ILoggerFactory"/> wrapping the configured Serilog logger.</returns>
     public static ILoggerFactory CreateLogger(
         string appName,
-        LogEventLevel minimumLevel = LogEventLevel.Information)
+        LogEventLevel minimumLevel = LogEventLevel.Information,
+        Action<LoggerConfiguration>? configure = null)
     {
         var logDir  = Path.Combine(LogRoot, appName);
         var logFile = Path.Combine(logDir, $"{appName}-.log");
 
         Directory.CreateDirectory(logDir);
 
-        Log.Logger = new LoggerConfiguration()
+        var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Is(minimumLevel)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .MinimumLevel.Override("System",    LogEventLevel.Warning)
@@ -56,8 +58,11 @@ public static class SerilogHelper
                 rollingInterval:     RollingInterval.Day,
                 retainedFileCountLimit: 31,
                 outputTemplate:      "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext} {Message:lj} {Properties:j}{NewLine}{Exception}",
-                restrictedToMinimumLevel: minimumLevel)
-            .CreateLogger();
+                restrictedToMinimumLevel: minimumLevel);
+
+        configure?.Invoke(loggerConfig);
+
+        Log.Logger = loggerConfig.CreateLogger();
 
         return Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
             builder.AddSerilog(Log.Logger, dispose: false));

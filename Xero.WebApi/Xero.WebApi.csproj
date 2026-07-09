@@ -21,6 +21,8 @@
     <PackageReference Include="Serilog.Enrichers.Thread"    Version="4.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="Quartz" Version="3.13.1" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
   </ItemGroup>
 
 </Project>

@@ -44,7 +44,11 @@ public sealed class RunExecutionRepository
         comparison_started_at         AS ComparisonStartedAt,
         saving_started_at             AS SavingStartedAt,
         finished_at                   AS FinishedAt,
-        definition_id                 AS DefinitionId";
+        definition_id                 AS DefinitionId,
+        ref_query                     AS RefQuery,
+        target_query                  AS TargetQuery,
+        ref_script                    AS RefScript,
+        target_script                 AS TargetScript";
 
     public RunExecutionRepository(IDbConnectionFactory factory, string connectionString)
     {
@@ -76,10 +80,12 @@ public sealed class RunExecutionRepository
         return await conn.ExecuteScalarAsync<int>(new CommandDefinition(
             @"INSERT INTO nrt_run_executions
                   (run_timestamp, scenario_name, reference_version, target_version,
-                   valuation_date, column_schema, status, definition_id)
+                   valuation_date, column_schema, status, definition_id,
+                   ref_query, target_query, ref_script, target_script)
               VALUES
                   (@RunTimestamp, @ScenarioName, @ReferenceVersion, @TargetVersion,
-                   @ValuationDate::date, @ColumnSchema::jsonb, 'pending', @DefinitionId)
+                   @ValuationDate::date, @ColumnSchema::jsonb, 'pending', @DefinitionId,
+                   @RefQuery, @TargetQuery, @RefScript, @TargetScript)
               RETURNING run_id",
             new
             {
@@ -90,6 +96,10 @@ public sealed class RunExecutionRepository
                 ValuationDate    = request.ValuationDate,
                 ColumnSchema     = schemaJson,
                 DefinitionId     = request.DefinitionId,
+                RefQuery         = request.Reference.Query,
+                TargetQuery      = request.Target.Query,
+                RefScript        = request.RefCommandLine,
+                TargetScript     = request.TargetCommandLine,
             },
             cancellationToken: ct));
     }

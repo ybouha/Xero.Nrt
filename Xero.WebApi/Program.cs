@@ -1,20 +1,28 @@
 using System.Data;
 using System.Text.Json.Serialization;
 using Npgsql;
+using Quartz;
 using Serilog;
 using Xero.DataAcquisition;
 using Xero.Logging;
 using Xero.WebApi.Data;
+using Xero.WebApi.Logging;
 using Xero.WebApi.Models;
+using Xero.WebApi.Scheduling;
 using Xero.WebApi.Services;
-
-// ── Bootstrap logger (captures startup errors before the host is built) ────────
-
-SerilogHelper.CreateLogger("Xero.WebApi");
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    // Results DB connection string also feeds the per-run correlated log sink.
+    var connStr = builder.Configuration["Db:ConnectionString"]
+        ?? throw new InvalidOperationException("Db:ConnectionString is not configured.");
+
+    // Configure Serilog (console + file) plus a Postgres sink that persists every
+    // event carrying a RunId into nrt_run_logs for per-run log retrieval.
+    SerilogHelper.CreateLogger("Xero.WebApi",
+        configure: cfg => cfg.WriteTo.Sink(new PostgresRunLogSink(connStr)));
 
     // Wire Serilog into the ASP.NET Core host so every ILogger<T> resolves to Serilog
     builder.Host.UseSerilog(Log.Logger);
@@ -53,16 +61,26 @@ try
 
     var runExecutionRepo      = new RunExecutionRepository(auditFactory, auditConnStr);
     var runDefinitionRepo     = new NrtRunDefinitionRepository(auditFactory, auditConnStr);
+    var runScheduleRepo       = new NrtRunScheduleRepository(auditFactory, auditConnStr);
     builder.Services.AddSingleton(runExecutionRepo);
     builder.Services.AddSingleton(runDefinitionRepo);
+    builder.Services.AddSingleton(runScheduleRepo);
     builder.Services.AddSingleton<ICommandRunner, CommandRunner>();
+    builder.Services.AddSingleton<IScriptParameterRunner, PowerShellScriptRunner>();
     builder.Services.AddScoped<INrtRunDefinitionService, NrtRunDefinitionService>();
     builder.Services.AddScoped<INrtService, NrtService>();
 
-    // ── Results DB (NrtDiffResults table) ─────────────────────────────────────
+    // ── Quartz scheduling (cron-driven NRT runs) ───────────────────────────────
+    builder.Services.AddQuartz();
+    builder.Services.AddQuartzHostedService(opts => opts.WaitForJobsToComplete = true);
+    // Register job type so the MS DI job factory uses GetService<T>() rather than
+    // ActivatorUtilities.CreateInstance — more reliable with scoped dependencies.
+    builder.Services.AddTransient<NrtRunJob>();
+    builder.Services.AddSingleton<NrtJobListener>();
+    builder.Services.AddSingleton<IScheduleManager, ScheduleManager>();
+    builder.Services.AddHostedService<ScheduleBootstrapHostedService>();
 
-    var connStr = builder.Configuration["Db:ConnectionString"]
-        ?? throw new InvalidOperationException("Db:ConnectionString is not configured.");
+    // ── Results DB (NrtDiffResults table) ─────────────────────────────────────
 
     builder.Services.AddScoped<IDbConnection>(_ => new NpgsqlConnection(connStr));
     builder.Services.AddScoped<INrtResultService, NrtResultService>();

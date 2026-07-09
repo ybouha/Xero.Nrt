@@ -21,20 +21,20 @@ public sealed class NrtService : INrtService
 {
     private readonly RunExecutionRepository       _runRepository;
     private readonly NrtRunDefinitionRepository   _definitionRepository;
-    private readonly ICommandRunner               _commandRunner;
+    private readonly IScriptParameterRunner       _scriptRunner;
     private readonly ILogger<NrtService>          _logger;
     private readonly ILoggerFactory               _loggerFactory;
 
     public NrtService(
         RunExecutionRepository     runRepository,
         NrtRunDefinitionRepository definitionRepository,
-        ICommandRunner             commandRunner,
+        IScriptParameterRunner     scriptRunner,
         ILogger<NrtService>        logger,
         ILoggerFactory             loggerFactory)
     {
         _runRepository        = runRepository;
         _definitionRepository = definitionRepository;
-        _commandRunner        = commandRunner;
+        _scriptRunner         = scriptRunner;
         _logger               = logger;
         _loggerFactory        = loggerFactory;
     }
@@ -71,6 +71,10 @@ public sealed class NrtService : INrtService
 
         // ── 1. Create execution record (status = 'pending') ───────────────────
         var runId = await _runRepository.CreateRunAsync(request, runTimestamp, ct);
+
+        // Tag every log event emitted for the remainder of this run with the RunId
+        // correlation id so it can be persisted to nrt_run_logs and retrieved per run.
+        using var _ = Serilog.Context.LogContext.PushProperty("RunId", runId);
         _logger.LogInformation("Run execution record created: RunId={RunId}", runId);
 
         try
@@ -84,11 +88,13 @@ public sealed class NrtService : INrtService
                 await _runRepository.SetStatusAsync(runId, "running_commands", ct: ct);
 
                 var refCmdTask = hasRefCmd
-                    ? RunCommandWithTrackingAsync(runId, "ref", request.RefCommandLine!, ct)
+                    ? RunCommandWithTrackingAsync(
+                        runId, "ref", request.RefCommandLine!, request.Reference, request, ct)
                     : Task.FromResult(true);
 
                 var tgtCmdTask = hasTgtCmd
-                    ? RunCommandWithTrackingAsync(runId, "tgt", request.TargetCommandLine!, ct)
+                    ? RunCommandWithTrackingAsync(
+                        runId, "tgt", request.TargetCommandLine!, request.Target, request, ct)
                     : Task.FromResult(true);
 
                 await Task.WhenAll(refCmdTask, tgtCmdTask);
@@ -178,13 +184,17 @@ public sealed class NrtService : INrtService
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Runs a shell command and persists per-command status columns.
-    /// Returns <c>true</c> if the command succeeded.
+    /// Runs a side's PowerShell parameter script, persists per-command status columns,
+    /// and on success assigns the emitted object's properties to
+    /// <paramref name="dbSettings"/>.<see cref="DbSettingsDto.Parameters"/> for binding
+    /// to that side's query. Returns <c>true</c> if the script succeeded.
     /// </summary>
     private async Task<bool> RunCommandWithTrackingAsync(
         int               runId,
         string            side,        // "ref" or "tgt"
-        string            commandLine,
+        string            script,
+        DbSettingsDto     dbSettings,
+        NrtRunRequest     request,
         CancellationToken ct)
     {
         var startedAt = DateTimeOffset.UtcNow;
@@ -196,10 +206,27 @@ public sealed class NrtService : INrtService
             await _runRepository.SetTgtCommandStatusAsync(
                 runId, "running", startedAt, null, null, null, ct);
 
-        var result     = await _commandRunner.RunAsync(commandLine, ct);
+        var environment = new Dictionary<string, string>
+        {
+            ["VALUATION_DATE"] = request.ValuationDate,
+            ["SCENARIO_NAME"]  = request.ScenarioName,
+            ["RUN_SIDE"]       = side,
+        };
+
+        var result     = await _scriptRunner.RunAsync(script, environment, ct);
         var finishedAt = DateTimeOffset.UtcNow;
         var status     = result.Succeeded ? "completed" : "failed";
         var error      = result.Succeeded ? null : result.Stderr;
+
+        if (result.Succeeded)
+        {
+            dbSettings.Parameters = new Dictionary<string, object?>(
+                result.Parameters, StringComparer.OrdinalIgnoreCase);
+            _logger.LogInformation(
+                "[RunId={RunId}] {Side} parameter script resolved {Count} parameter(s): {Keys}",
+                runId, side, dbSettings.Parameters.Count,
+                string.Join(", ", dbSettings.Parameters.Keys));
+        }
 
         if (side == "ref")
             await _runRepository.SetRefCommandStatusAsync(

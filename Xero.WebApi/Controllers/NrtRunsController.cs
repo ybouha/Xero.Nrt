@@ -85,4 +85,20 @@ public sealed class NrtRunsController : ControllerBase
         var result = await _resultService.GetDiffsForRunAsync(runId, filter, ct);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Returns the correlated log lines emitted during a specific run, ordered oldest first.
+    /// </summary>
+    [HttpGet("{runId:int}/logs")]
+    [ProducesResponseType(typeof(IReadOnlyList<RunLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<RunLogDto>>> GetRunLogs(int runId, CancellationToken ct)
+    {
+        var run = await _resultService.GetRunAsync(runId, ct);
+        if (run is null)
+            return NotFound($"Run {runId} not found.");
+
+        var logs = await _resultService.GetRunLogsAsync(runId, ct);
+        return Ok(logs);
+    }
 }

@@ -6,9 +6,11 @@ import {
   ExecuteFromDefinitionRequest,
   NrtRunDefinition,
   NrtRunDefinitionSummary,
+  NrtRunSchedule,
   RunExecutionResponse,
   RunExecutionSummary,
   SaveNrtRunDefinitionRequest,
+  SaveNrtRunScheduleRequest,
 } from '../models/nrt.models';
 
 @Injectable({ providedIn: 'root' })
@@ -52,5 +54,36 @@ export class NrtApiService {
 
   executeFromDefinition(id: string, req: ExecuteFromDefinitionRequest): Observable<RunExecutionResponse> {
     return this.http.post<RunExecutionResponse>(`${this.base}/run-definitions/${id}/execute`, req);
+  }
+
+  // ── Run Schedules ────────────────────────────────────────────────────────────
+
+  getSchedules(): Observable<NrtRunSchedule[]> {
+    return this.http.get<NrtRunSchedule[]>(`${this.base}/run-schedules`);
+  }
+
+  getSchedule(id: string): Observable<NrtRunSchedule> {
+    return this.http.get<NrtRunSchedule>(`${this.base}/run-schedules/${id}`);
+  }
+
+  createSchedule(req: SaveNrtRunScheduleRequest): Observable<{ scheduleId: string }> {
+    return this.http.post<{ scheduleId: string }>(`${this.base}/run-schedules`, req);
+  }
+
+  updateSchedule(id: string, req: SaveNrtRunScheduleRequest): Observable<void> {
+    return this.http.put<void>(`${this.base}/run-schedules/${id}`, req);
+  }
+
+  setScheduleEnabled(id: string, enabled: boolean): Observable<void> {
+    const params = new HttpParams().set('enabled', enabled);
+    return this.http.patch<void>(`${this.base}/run-schedules/${id}/enabled`, null, { params });
+  }
+
+  deleteSchedule(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/run-schedules/${id}`);
+  }
+
+  triggerSchedule(id: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/run-schedules/${id}/trigger`, null);
   }
 }

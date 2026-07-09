@@ -1,82 +1,48 @@
-# SmartComparer
+# Xero
 
-**SmartComparer** is a high-performance .NET library designed to efficiently compare large lists of objects. It leverages advanced memory management and fast reflection techniques to identify differences between two datasets quickly.
-![alt text](https://github.com/ybouha/SmartComparer/blob/master/SmartCompare.png?raw=true)
-## Features
+An NRT (reference-vs-target) data comparison and orchestration platform. Reference and target datasets (e.g. risk/valuation runs) are acquired from a database, diffed column-by-column, and the results are saved and surfaced through a web UI — with run definitions, scheduled executions, and history all tracked in Postgres.
 
-- **High Performance**: Uses **Compiled Expression Trees** for rapid property access and `HashSet` for O(1) lookups.
-- **Memory Efficient**: Utilizes `Collections.Pooled` to reduce garbage collection pressure during large comparisons.
-- **Detailed Reporting**:
-  - **Excel Export**: Generates multi-sheet Excel reports highlighting differences (`EPPlus`).
-  - **HTML Export**: Creates interactive HTML reports with collapsible sections.
-  - **Console Gantt Chart**: Visualizes parallel task execution timeline in the console.
-- **Flexible Comparison**:
-  - Compare by specific key properties.
-  - Ignore specific properties during comparison.
-  - Detects items "Only in Reference", "Only in Target", and "In Both but Different".
+## Architecture
 
-## Getting Started
+**Backend — `Xero.WebApi`** (ASP.NET Core)
+Orchestration hub for the whole pipeline. Exposes REST endpoints for run definitions, run executions, schedules, and diff results; runs comparisons via `NrtPipelineRunner`; schedules recurring runs with Quartz.NET; logs to Postgres (`nrt_run_logs`) and file via Serilog.
 
-### Prerequisites
+- `Controllers/` — `NrtController`, `NrtRunsController`, `RunDefinitionsController`, `RunExecutionsController`, `RunSchedulesController`, `DiffResultsController`
+- `Services/` — `NrtService` / `NrtPipelineRunner` (executes the compare pipeline), `NrtRunDefinitionService`, `NrtResultService`, `PowerShellScriptRunner` (invokes external scripts as part of a run)
 
-- .NET 8.0 SDK
+**Frontend — `Xero.WebApp`** (Angular 17, DevExtreme)
+CRUD/monitoring UI for defining, scheduling, running, and reviewing comparison jobs: dashboard, run definitions (+ form), run executions, run scheduling, diff results.
 
-### Dependencies
+**Comparison engine & pipeline projects**
 
-This project relies on the following key NuGet packages:
-- `EPPlus.Core`
-- `Collections.Pooled`
-- `CommandLineParser`
+| Project | Responsibility |
+|---|---|
+| `Xero.SmartComparer` | Core generic list-diff engine (`ListComparer`, `EqualityComparer`, `HashSetComparer`, `DynamicTypeBuilder`, `CompareResult`) |
+| `Xero.DataAcquisition` | Loads reference/target rows from Postgres or SQL Server (`IDataLoader`, `IDbConnectionFactory`) |
+| `Xero.ResultSaver` | Persists comparison output — Excel, JSON, SQL audit, and diff-table (`NrtDiffResults`) writers |
+| `Xero.ResultViewer` | Renders results after a run (console / HTML) |
+| `Xero.NrtRunner` | Standalone console app that runs a single comparison end-to-end outside the API, driven by `appsettings.json` |
+| `Xero.Logging` | Shared Serilog setup (`SerilogHelper`) used by every entry point |
 
-### Usage
+**`Xero.JavaWebApi`** — an experimental Spring Boot (Java 21) port of `Xero.WebApi`, mirroring its controller/service/model structure. Not part of `Xero.sln`; not wired into the standard dev workflow below.
 
-Here is a basic example of how to use `ListComparer` to compare two lists of objects:
+**`db/`** — Postgres schema and migrations: `create_tables.sql` (base tables), `V2`–`V4` (run executions/definitions, diff-result cleanup, run schedules), `seed_data.sql`.
 
-```csharp
-using SmartComparer;
+## Getting started
 
-// 1. Define your data model
-public class ExampleItem
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public decimal Price { get; set; }
-}
+Prerequisites: Docker, .NET 8 SDK, Node.js/npm.
 
-// 2. Prepare your lists
-var referenceList = new List<ExampleItem> { /* ... populate data ... */ };
-var targetList = new List<ExampleItem> { /* ... populate data ... */ };
-
-// 3. Configure the comparer
-// Define which properties act as unique keys (e.g., "Id")
-var keyProperties = new List<string> { nameof(ExampleItem.Id) };
-// Define properties to ignore (optional)
-var ignoreProperties = new List<string>();
-
-var comparer = new ListComparer<ExampleItem>(keyProperties, ignoreProperties);
-
-// 4. Perform the comparison
-var result = await comparer.CompareList(referenceList, targetList);
-
-// 5. Inspect results
-Console.WriteLine($"Only in Reference: {result.OnlyInReference?.Count}");
-Console.WriteLine($"Only in Target: {result.OnlyInTarget?.Count}");
-Console.WriteLine($"In Both but Different: {result.Count}");
-
-// 6. Export results (Optional)
-// Export to HTML
-var htmlExporter = new HtmlExporter<ExampleItem>();
-htmlExporter.ExportDifferences(result, "comparison_report.html");
-
-// Export to Excel
-var excelExporter = new ExcelExporter<ExampleItem>();
-excelExporter.ExportDifferences(result, "comparison_report.xlsx");
+```powershell
+.\start.ps1   # Windows
+```
+```bash
+./start.sh    # macOS/Linux
 ```
 
-## Project Structure
+This brings up Postgres via `docker-compose.yml` (port 5433, healthcheck-gated), builds and runs `Xero.WebApi` on `http://localhost:60513` (Swagger at root), and starts the Angular dev server on `http://localhost:4200`.
 
-- **ListComparer.cs**: Core logic for comparing lists.
-- **EqualityComparer.cs**: Custom equality comparers for `HashSet` operations.
-- **ExcelExporter.cs**: Handles exporting comparison results to `.xlsx`.
-- **HtmlExporter.cs**: Handles exporting comparison results to `.html`.
-- **Program.cs**: Contains example usage and performance testing code.
+To run a single comparison without the API, configure `Xero.NrtRunner/appsettings.json` and run:
+
+```bash
+dotnet run --project Xero.NrtRunner
+```

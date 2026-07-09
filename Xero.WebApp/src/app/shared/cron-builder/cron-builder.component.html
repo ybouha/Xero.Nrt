@@ -1,0 +1,158 @@
+<div class="cron-builder">
+
+  <!-- Tab strip -->
+  <div class="cb-tabs">
+    <button *ngFor="let t of tabs"
+      class="cb-tab"
+      [class.active]="state.tab === t.key"
+      (click)="setTab(t.key)"
+      type="button">
+      {{ t.label }}
+    </button>
+  </div>
+
+  <!-- Tab body -->
+  <div class="cb-body">
+
+    <!-- Minutes ─────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state.tab === 'minutes'">
+      <div class="cb-row">
+        <span>Every</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.minutes.every" (ngModelChange)="emit()" min="1" max="59">
+        <span>minute(s), starting at second 0</span>
+      </div>
+    </ng-container>
+
+    <!-- Hourly ──────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state.tab === 'hourly'">
+      <div class="cb-row">
+        <span>Every</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.hourly.every" (ngModelChange)="emit()" min="1" max="23">
+        <span>hour(s) at minute</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.hourly.atMinute" (ngModelChange)="emit()" min="0" max="59">
+      </div>
+    </ng-container>
+
+    <!-- Daily ───────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state.tab === 'daily'">
+      <div class="cb-options">
+        <label class="cb-option">
+          <input type="radio" [(ngModel)]="state.daily.mode" (ngModelChange)="emit()" value="every" name="daily-mode">
+          <span>Every</span>
+          <input type="number" class="cb-num" [(ngModel)]="state.daily.everyDays" (ngModelChange)="emit()"
+            min="1" max="31" [attr.disabled]="state.daily.mode !== 'every' ? '' : null">
+          <span>day(s)</span>
+        </label>
+        <label class="cb-option">
+          <input type="radio" [(ngModel)]="state.daily.mode" (ngModelChange)="emit()" value="weekday" name="daily-mode">
+          <span>Every weekday (Mon–Fri)</span>
+        </label>
+      </div>
+      <div class="cb-row">
+        <span>at</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.daily.hour" (ngModelChange)="emit()" min="0" max="23">
+        <span class="sep">:</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.daily.minute" (ngModelChange)="emit()" min="0" max="59">
+      </div>
+    </ng-container>
+
+    <!-- Weekly ──────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state.tab === 'weekly'">
+      <div class="cb-days">
+        <label *ngFor="let d of state.weekly.days" class="cb-day" [class.active]="d.checked">
+          <input type="checkbox" [(ngModel)]="d.checked" (ngModelChange)="emit()" [name]="'wd-' + d.value">
+          {{ d.label }}
+        </label>
+      </div>
+      <div class="cb-row">
+        <span>at</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.weekly.hour" (ngModelChange)="emit()" min="0" max="23">
+        <span class="sep">:</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.weekly.minute" (ngModelChange)="emit()" min="0" max="59">
+      </div>
+    </ng-container>
+
+    <!-- Monthly ─────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state.tab === 'monthly'">
+      <div class="cb-options">
+        <label class="cb-option">
+          <input type="radio" [(ngModel)]="state.monthly.mode" (ngModelChange)="emit()" value="day" name="monthly-mode">
+          <span>Day</span>
+          <input type="number" class="cb-num" [(ngModel)]="state.monthly.dayOfMonth" (ngModelChange)="emit()"
+            min="1" max="31" [attr.disabled]="state.monthly.mode !== 'day' ? '' : null">
+          <span>of the month</span>
+        </label>
+        <label class="cb-option">
+          <input type="radio" [(ngModel)]="state.monthly.mode" (ngModelChange)="emit()" value="nth" name="monthly-mode">
+          <span>The</span>
+          <select class="cb-select" [(ngModel)]="state.monthly.ordinal" (ngModelChange)="emit()"
+            [attr.disabled]="state.monthly.mode !== 'nth' ? '' : null">
+            <option *ngFor="let o of ordinals" [value]="o.value">{{ o.label }}</option>
+          </select>
+          <select class="cb-select" [(ngModel)]="state.monthly.weekday" (ngModelChange)="emit()"
+            [attr.disabled]="state.monthly.mode !== 'nth' ? '' : null">
+            <option *ngFor="let d of weekdays" [value]="d.value">{{ d.label }}</option>
+          </select>
+          <span>of the month</span>
+        </label>
+      </div>
+      <div class="cb-row">
+        <span>of every</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.monthly.everyMonths" (ngModelChange)="emit()" min="1" max="12">
+        <span>month(s) at</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.monthly.hour" (ngModelChange)="emit()" min="0" max="23">
+        <span class="sep">:</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.monthly.minute" (ngModelChange)="emit()" min="0" max="59">
+      </div>
+    </ng-container>
+
+    <!-- Yearly ──────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state.tab === 'yearly'">
+      <div class="cb-options">
+        <label class="cb-option">
+          <input type="radio" [(ngModel)]="state.yearly.mode" (ngModelChange)="emit()" value="date" name="yearly-mode">
+          <select class="cb-select" [(ngModel)]="state.yearly.month" (ngModelChange)="emit()"
+            [attr.disabled]="state.yearly.mode !== 'date' ? '' : null">
+            <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
+          </select>
+          <input type="number" class="cb-num" [(ngModel)]="state.yearly.dayOfMonth" (ngModelChange)="emit()"
+            min="1" max="31" [attr.disabled]="state.yearly.mode !== 'date' ? '' : null">
+        </label>
+        <label class="cb-option">
+          <input type="radio" [(ngModel)]="state.yearly.mode" (ngModelChange)="emit()" value="nth" name="yearly-mode">
+          <span>The</span>
+          <select class="cb-select" [(ngModel)]="state.yearly.ordinal" (ngModelChange)="emit()"
+            [attr.disabled]="state.yearly.mode !== 'nth' ? '' : null">
+            <option *ngFor="let o of ordinals" [value]="o.value">{{ o.label }}</option>
+          </select>
+          <select class="cb-select" [(ngModel)]="state.yearly.weekday" (ngModelChange)="emit()"
+            [attr.disabled]="state.yearly.mode !== 'nth' ? '' : null">
+            <option *ngFor="let d of weekdays" [value]="d.value">{{ d.label }}</option>
+          </select>
+          <span>of</span>
+          <select class="cb-select" [(ngModel)]="state.yearly.month" (ngModelChange)="emit()"
+            [attr.disabled]="state.yearly.mode !== 'nth' ? '' : null">
+            <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
+          </select>
+        </label>
+      </div>
+      <div class="cb-row">
+        <span>at</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.yearly.hour" (ngModelChange)="emit()" min="0" max="23">
+        <span class="sep">:</span>
+        <input type="number" class="cb-num" [(ngModel)]="state.yearly.minute" (ngModelChange)="emit()" min="0" max="59">
+      </div>
+    </ng-container>
+
+  </div><!-- /cb-body -->
+
+  <!-- Preview bar -->
+  <div class="cb-preview">
+    <div class="cb-preview-row">
+      <span class="cb-preview-label">Expression</span>
+      <code class="cb-expr">{{ preview }}</code>
+    </div>
+    <div class="cb-desc" *ngIf="description">{{ description }}</div>
+  </div>
+
+</div>

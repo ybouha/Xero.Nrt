@@ -1,0 +1,153 @@
+.run-scheduling-page {
+  max-width: 1400px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  h1 { font-size: 22px; font-weight: 700; }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: opacity .2s;
+  &[disabled] { opacity: .5; cursor: default; }
+}
+.btn-primary { background: var(--accent); color: #fff; &:hover:not([disabled]) { opacity: .85; } }
+.btn-ghost   { background: transparent; border: 1px solid var(--card-border); color: var(--text-primary); &:hover { border-color: var(--accent); } }
+.btn-danger  { background: rgba(246,109,109,.15); color: var(--fail-color, #f66d6d); border: 1px solid rgba(246,109,109,.3);
+               &:hover:not([disabled]) { background: rgba(246,109,109,.25); } }
+.actions { display: flex; gap: 8px; }
+
+.grid-loader { display: block; margin: 60px auto; }
+.grid-wrap   { padding: 0; overflow: hidden; }
+
+.mono-sm { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+.ts      { color: var(--text-secondary); }
+
+// ── Status / last-run badges ────────────────────────────────────────────────────
+.badge {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+
+  &.on  { background: rgba(62,207,142,.12); color: var(--pass-color, #3ecf8e); }
+  &.off { background: rgba(140,140,140,.15); color: var(--text-secondary); }
+
+  &.sm { padding: 1px 6px; font-size: 10px; }
+  &.completed { background: rgba(62,207,142,.12); color: var(--pass-color, #3ecf8e); }
+  &.failed    { background: rgba(246,109,109,.12); color: var(--fail-color, #f66d6d); }
+}
+
+.last-run { display: flex; flex-direction: column; gap: 2px; }
+
+// ── Row actions ───────────────────────────────────────────────────────────────
+.row-actions { display: flex; gap: 6px; align-items: center; }
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .15s, border-color .15s;
+
+  &.run {
+    color: var(--pass-color, #3ecf8e);
+    background: rgba(62,207,142,.1);
+    border-color: rgba(62,207,142,.25);
+    &:hover { background: rgba(62,207,142,.2); }
+  }
+
+  &.toggle {
+    color: var(--text-secondary);
+    background: rgba(140,140,140,.1);
+    border-color: rgba(140,140,140,.22);
+    &:hover { background: rgba(140,140,140,.2); }
+  }
+
+  &.edit {
+    color: var(--accent, #4f8ef7);
+    background: rgba(79,142,247,.1);
+    border-color: rgba(79,142,247,.25);
+    &:hover { background: rgba(79,142,247,.2); }
+  }
+
+  &.delete {
+    color: var(--fail-color, #f66d6d);
+    background: rgba(246,109,109,.08);
+    border-color: rgba(246,109,109,.2);
+    &:hover { background: rgba(246,109,109,.18); }
+  }
+}
+
+// ── Popups ────────────────────────────────────────────────────────────────────
+.popup-content { padding: 16px 20px 20px; }
+
+.popup-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+  strong { color: var(--text-primary); }
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+  .field-group { flex: 1; }
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  &.inline { flex-direction: row; align-items: center; }
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.hint {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-secondary);
+  code { font-family: 'SF Mono', 'Fira Code', monospace; }
+}
+
+.error-msg {
+  font-size: 12px;
+  color: var(--fail-color, #f66d6d);
+  background: rgba(246,109,109,.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

@@ -47,7 +47,7 @@ export class RunDefinitionFormComponent implements OnInit {
   readonly columnTypeOptions = ['string', 'decimal', 'int', 'long', 'bool', 'double'];
 
   private readonly defaultConnStr =
-    'Host=localhost;Port=5432;Database=Xero;Username=postgres;Password=tc0ab1y';
+    'Host=localhost;Port=5433;Database=Xero;Username=postgres;Password=tc0ab1y';
 
   // ── Form fields ─────────────────────────────────────────────────────────────
   name             = '';

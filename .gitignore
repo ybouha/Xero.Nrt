@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Docker Postgres seed dump (large, machine-specific data snapshot)
+init.sql

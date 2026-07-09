@@ -36,5 +36,21 @@ public sealed class RunExecutionDto
     public DateTimeOffset? SavingStartedAt     { get; init; }
     public DateTimeOffset? FinishedAt          { get; init; }
     public Guid?          DefinitionId         { get; init; }
+
+    // ── Snapshot of queries / scripts at run creation time ────────────────────
+    public string?        RefQuery            { get; init; }
+    public string?        TargetQuery         { get; init; }
+    public string?        RefScript           { get; init; }
+    public string?        TargetScript        { get; init; }
+}
+
+/// <summary>A single correlated log line for an NRT run (from <c>nrt_run_logs</c>).</summary>
+public sealed class RunLogDto
+{
+    public DateTimeOffset Timestamp     { get; init; }
+    public string         Level         { get; init; } = string.Empty;
+    public string         Message       { get; init; } = string.Empty;
+    public string?        Exception     { get; init; }
+    public string?        SourceContext { get; init; }
 }
 
