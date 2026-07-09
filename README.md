@@ -1,6 +1,27 @@
 # Xero
 
-An NRT (reference-vs-target) data comparison and orchestration platform. Reference and target datasets (e.g. risk/valuation runs) are acquired from a database, diffed column-by-column, and the results are saved and surfaced through a web UI — with run definitions, scheduled executions, and history all tracked in Postgres.
+An NRT (reference-vs-target) data comparison and orchestration platform. Reference and target datasets are acquired from a database, diffed row-by-row and column-by-column, and the results are saved and surfaced through a web UI — with run definitions, scheduled executions, and history all tracked in Postgres.
+
+![Run Executions](docs/screenshots/run-executions.png)
+
+### Schema-agnostic by design
+
+The comparison engine has **zero hard-coded knowledge of the data it compares**. There is no fixed "row" model, no domain entity, no compile-time contract tied to any business dataset:
+
+- Each run declares its own column schema (`ColumnDef[]`: name + type — `string`, `decimal`, `int`, `long`, `bool`, `double`).
+- `DynamicTypeBuilder` (`Xero.SmartComparer`) emits a real CLR type for that schema **at runtime**, via `System.Reflection.Emit` — a genuine class with typed get/set properties, not a dictionary or `dynamic` wrapper. Identical schemas are fingerprinted and cached, so the same shape is only emitted once per process.
+- That generated type flows straight through Dapper's `QueryAsync<T>` for loading and through the LINQ-expression-based `ListComparer` for diffing — both bind to it exactly as they would to a hand-written POCO.
+- Data acquisition is equally decoupled: `IDataLoader<T>` and `IDbConnectionFactory` abstract over the SQL dialect (Postgres or SQL Server today), so the same pipeline can point at any source table or query without touching engine code.
+
+The practical effect: pointing the system at a brand-new dataset — a different table, a different set of columns, a different business domain entirely — is a configuration change (schema + query), never a code change or redeploy. The engine that was built to diff VaR risk runs works identically on any other tabular reference-vs-target comparison.
+
+### Other strengths
+
+- **Full orchestration, not just a diff library** — run definitions, ad-hoc runs, and Quartz.NET-scheduled recurring runs are all first-class, with every execution's status, timing, and result counts persisted and browsable in the UI.
+- **Multiple output formats** — `Xero.ResultSaver` writes results to Excel, JSON, a queryable SQL diff-results table, and a full audit trail, so results can be consumed by a human, a script, or another system.
+- **Composable pipeline** — acquisition, comparison, persistence, and presentation are separate projects (`Xero.DataAcquisition`, `Xero.SmartComparer`, `Xero.ResultSaver`, `Xero.ResultViewer`) behind narrow interfaces, and can be swapped or extended independently.
+- **Two entry points** — drive it through the full web API + Angular UI for day-to-day operational use, or run a single comparison headlessly via `Xero.NrtRunner` for CI/scripted use cases.
+- **Extensible run steps** — `PowerShellScriptRunner` lets a run definition invoke external scripts as part of its pipeline, without engine changes.
 
 ## Architecture
 
