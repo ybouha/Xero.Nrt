@@ -33,7 +33,7 @@ public sealed class DbSettings
     public int    TimeoutSeconds    { get; set; } = 120;
 }
 
-public enum DbProvider { SqlServer, PostgreSql }
+public enum DbProvider { SqlServer, PostgreSql, Couchbase }
 
 public sealed class OutputSettings
 {
@@ -55,7 +55,6 @@ public sealed class OutputSettings
 public sealed class DiffDbSettings
 {
     public bool         Enabled          { get; set; } = false;
-    public DbProvider   Provider         { get; set; } = DbProvider.SqlServer;
     public string       ConnectionString { get; set; } = string.Empty;
 
     /// <summary>Table name. Created automatically if it does not exist.</summary>

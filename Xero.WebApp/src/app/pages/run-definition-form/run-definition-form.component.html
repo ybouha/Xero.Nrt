@@ -204,10 +204,6 @@
       </div>
 
       <div class="field-row" *ngIf="output.diffDb.enabled">
-        <div class="field-group narrow">
-          <label class="field-label">Provider</label>
-          <dx-select-box [(value)]="output.diffDb.provider" [items]="providerOptions" stylingMode="outlined" />
-        </div>
         <div class="field-group">
           <label class="field-label">Connection String</label>
           <dx-text-box [(value)]="output.diffDb.connectionString" stylingMode="outlined" />

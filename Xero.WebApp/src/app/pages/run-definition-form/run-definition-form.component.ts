@@ -43,7 +43,7 @@ export class RunDefinitionFormComponent implements OnInit {
   loadError   = '';
   saveError   = '';
 
-  readonly providerOptions  = ['PostgreSql', 'SqlServer'];
+  readonly providerOptions  = ['PostgreSql', 'SqlServer', 'Couchbase'];
   readonly columnTypeOptions = ['string', 'decimal', 'int', 'long', 'bool', 'double'];
 
   private readonly defaultConnStr =
@@ -81,7 +81,6 @@ export class RunDefinitionFormComponent implements OnInit {
   output: OutputSettingsDto = {
     diffDb: {
       enabled:          true,
-      provider:         'PostgreSql',
       connectionString: this.defaultConnStr,
       tableName:        'NrtDiffResults',
     },

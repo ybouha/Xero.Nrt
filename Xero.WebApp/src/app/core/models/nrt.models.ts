@@ -111,7 +111,7 @@ export interface PagedResult<T> {
 
 // ── Request models ─────────────────────────────────────────────────────────────
 
-export type DbProvider = 'SqlServer' | 'PostgreSql';
+export type DbProvider = 'SqlServer' | 'PostgreSql' | 'Couchbase';
 
 export interface DbSettingsDto {
   provider: DbProvider;
@@ -127,7 +127,6 @@ export interface CompareSettingsDto {
 
 export interface DiffDbSettingsDto {
   enabled: boolean;
-  provider: DbProvider;
   connectionString: string;
   tableName: string;
 }

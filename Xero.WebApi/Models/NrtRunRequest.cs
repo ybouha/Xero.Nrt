@@ -4,7 +4,7 @@ using Xero.SmartComparer;
 namespace Xero.WebApi.Models;
 
 /// <summary>Database engine choices, matching Xero.DataAcquisition factories.</summary>
-public enum DbProvider { SqlServer, PostgreSql }
+public enum DbProvider { SqlServer, PostgreSql, Couchbase }
 
 /// <summary>
 /// Full configuration for a single NRT run submitted via POST /api/nrt/runs.
@@ -74,7 +74,6 @@ public sealed class OutputSettingsDto
 public sealed class DiffDbSettingsDto
 {
     public bool       Enabled          { get; set; } = true;
-    public DbProvider Provider         { get; set; } = DbProvider.PostgreSql;
     public string     ConnectionString { get; set; } = string.Empty;
     public string     TableName        { get; set; } = "NrtDiffResults";
 }

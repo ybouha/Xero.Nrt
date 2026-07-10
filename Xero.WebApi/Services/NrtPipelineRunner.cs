@@ -46,9 +46,6 @@ public sealed class NrtPipelineRunner<T> : INrtPipelineRunner where T : class, n
         var logger = loggerFactory.CreateLogger<NrtPipelineRunner<T>>();
 
         // ── 1. Load data ───────────────────────────────────────────────────────
-        var refFactory = ResolveFactory(request.Reference.Provider);
-        var tgtFactory = ResolveFactory(request.Target.Provider);
-
         var loadOptions = new DataLoadOptions
         {
             ReferenceConnectionString = request.Reference.ConnectionString,
@@ -69,9 +66,12 @@ public sealed class NrtPipelineRunner<T> : INrtPipelineRunner where T : class, n
             "[RunId={RunId}] Target SQL ({Provider}):\n{Sql}",
             runId, request.Target.Provider, request.Target.Query);
 
-        var loader = new DbDataLoader<T>(
-            refFactory, tgtFactory,
-            loggerFactory.CreateLogger<DbDataLoader<T>>());
+        IDataLoader<T> loader = RequiresCouchbase(request.Reference.Provider, request.Target.Provider)
+            ? new CouchbaseDataLoader<T>(loggerFactory.CreateLogger<CouchbaseDataLoader<T>>())
+            : new DbDataLoader<T>(
+                ResolveFactory(request.Reference.Provider),
+                ResolveFactory(request.Target.Provider),
+                loggerFactory.CreateLogger<DbDataLoader<T>>());
 
         var (reference, target) = await loader.LoadAsync(loadOptions, ct);
 
@@ -126,9 +126,8 @@ public sealed class NrtPipelineRunner<T> : INrtPipelineRunner where T : class, n
         if (request.Output.DiffDb.Enabled
             && !string.IsNullOrWhiteSpace(request.Output.DiffDb.ConnectionString))
         {
-            var diffFactory = ResolveFactory(request.Output.DiffDb.Provider);
             var saver = new DbDiffSaver<T>(
-                diffFactory,
+                PostgreSqlConnectionFactory.Instance,
                 request.Output.DiffDb.ConnectionString,
                 request.Output.DiffDb.TableName,
                 loggerFactory.CreateLogger<DbDiffSaver<T>>());
@@ -156,9 +155,19 @@ public sealed class NrtPipelineRunner<T> : INrtPipelineRunner where T : class, n
         return p;
     }
 
+    private static bool RequiresCouchbase(DbProvider reference, DbProvider target)
+    {
+        if (reference != DbProvider.Couchbase && target != DbProvider.Couchbase) return false;
+        if (reference == DbProvider.Couchbase && target == DbProvider.Couchbase) return true;
+
+        throw new InvalidOperationException(
+            "Reference and Target must both use Couchbase when either side does — mixed Couchbase/SQL pairing is not supported.");
+    }
+
     private static IDbConnectionFactory ResolveFactory(DbProvider provider) => provider switch
     {
         DbProvider.PostgreSql => PostgreSqlConnectionFactory.Instance,
-        _                     => SqlServerConnectionFactory.Instance,
+        DbProvider.SqlServer  => SqlServerConnectionFactory.Instance,
+        _ => throw new InvalidOperationException($"No SQL connection factory available for provider '{provider}'."),
     };
 }

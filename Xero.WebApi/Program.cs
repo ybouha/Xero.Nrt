@@ -55,9 +55,12 @@ try
     var auditProviderStr = builder.Configuration["AuditDb:Provider"] ?? "PostgreSql";
     var auditProvider    = Enum.Parse<DbProvider>(auditProviderStr, ignoreCase: true);
 
-    IDbConnectionFactory auditFactory = auditProvider == DbProvider.PostgreSql
-        ? PostgreSqlConnectionFactory.Instance
-        : SqlServerConnectionFactory.Instance;
+    IDbConnectionFactory auditFactory = auditProvider switch
+    {
+        DbProvider.PostgreSql => PostgreSqlConnectionFactory.Instance,
+        DbProvider.SqlServer  => SqlServerConnectionFactory.Instance,
+        _ => throw new InvalidOperationException($"No SQL connection factory available for provider '{auditProvider}'."),
+    };
 
     var runExecutionRepo      = new RunExecutionRepository(auditFactory, auditConnStr);
     var runDefinitionRepo     = new NrtRunDefinitionRepository(auditFactory, auditConnStr);

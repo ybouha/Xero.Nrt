@@ -42,11 +42,18 @@ public sealed class NrtRunnerPipeline<T> : INrtRunnerPipeline where T : class, n
         static IDbConnectionFactory ResolveFactory(DbProvider provider) => provider switch
         {
             DbProvider.PostgreSql => PostgreSqlConnectionFactory.Instance,
-            _                     => SqlServerConnectionFactory.Instance
+            DbProvider.SqlServer  => SqlServerConnectionFactory.Instance,
+            _ => throw new InvalidOperationException($"No SQL connection factory available for provider '{provider}'."),
         };
 
-        var refFactory = ResolveFactory(settings.Reference.Provider);
-        var tgtFactory = ResolveFactory(settings.Target.Provider);
+        static bool RequiresCouchbase(DbProvider reference, DbProvider target)
+        {
+            if (reference != DbProvider.Couchbase && target != DbProvider.Couchbase) return false;
+            if (reference == DbProvider.Couchbase && target == DbProvider.Couchbase) return true;
+
+            throw new InvalidOperationException(
+                "Reference and Target must both use Couchbase when either side does — mixed Couchbase/SQL pairing is not supported.");
+        }
 
         // ── Step 1 — Load data ─────────────────────────────────────────────────
 
@@ -64,9 +71,12 @@ public sealed class NrtRunnerPipeline<T> : INrtRunnerPipeline where T : class, n
         };
 
         log.LogInformation("Step 1 — Loading data from both environments");
-        var loader = new DbDataLoader<T>(
-            refFactory, tgtFactory,
-            loggerFactory.CreateLogger<DbDataLoader<T>>());
+        IDataLoader<T> loader = RequiresCouchbase(settings.Reference.Provider, settings.Target.Provider)
+            ? new CouchbaseDataLoader<T>(loggerFactory.CreateLogger<CouchbaseDataLoader<T>>())
+            : new DbDataLoader<T>(
+                ResolveFactory(settings.Reference.Provider),
+                ResolveFactory(settings.Target.Provider),
+                loggerFactory.CreateLogger<DbDataLoader<T>>());
         var (reference, target) = await loader.LoadAsync(loadOptions, ct);
 
         // ── Step 2 — Compare ───────────────────────────────────────────────────
@@ -143,9 +153,8 @@ public sealed class NrtRunnerPipeline<T> : INrtRunnerPipeline where T : class, n
         if (settings.Output.DiffDb.Enabled
             && !string.IsNullOrWhiteSpace(settings.Output.DiffDb.ConnectionString))
         {
-            var diffFactory = ResolveFactory(settings.Output.DiffDb.Provider);
             savers.Add(new DbDiffSaver<T>(
-                diffFactory,
+                PostgreSqlConnectionFactory.Instance,
                 settings.Output.DiffDb.ConnectionString,
                 settings.Output.DiffDb.TableName,
                 loggerFactory.CreateLogger<DbDiffSaver<T>>()));

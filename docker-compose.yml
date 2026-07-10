@@ -17,5 +17,23 @@ services:
       timeout: 5s
       retries: 30
 
+  couchbase:
+    image: couchbase:community-7.2.4
+    container_name: xero-couchbase
+    ports:
+      - "8091:8091"   # Web UI / management
+      - "8092:8092"   # Views
+      - "8093:8093"   # Query (N1QL)
+      - "8094:8094"   # Search
+      - "11210:11210" # KV
+    volumes:
+      - xero-couchbase-data:/opt/couchbase/var
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/ui/index.html"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
 volumes:
   xero-postgres-data:
+  xero-couchbase-data:
